@@ -26,7 +26,6 @@ var tarCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-
 		Colorintln("green", "tar is running ...")
 		TarballDir(Input, Output)
 

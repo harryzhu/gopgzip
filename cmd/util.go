@@ -324,6 +324,53 @@ func TarballDir(src string, dst string) error {
 	return nil
 }
 
+func Untarball(src string, dst string) error {
+	fsrc, err := os.Open(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bar := progressbar.DefaultBytes(-1)
+
+	format := archiver.Tar{}
+
+	handler := func(ctx context.Context, f archiver.File) error {
+		rc, err := f.Open()
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		defer rc.Close()
+
+		srcStat, err := f.Stat()
+		if err != nil {
+			log.Println(err)
+		}
+
+		srcData, err := io.ReadAll(rc)
+		dstName := filepath.Join(Output, f.NameInArchive)
+		//log.Println(srcStat.Mode(), " ", dstName)
+
+		MakeDirs(filepath.Dir(dstName))
+
+		err = ioutil.WriteFile(dstName, srcData, srcStat.Mode())
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		bar.Add64(srcStat.Size())
+		return err
+	}
+
+	err = format.Extract(context.Background(), fsrc, nil, handler)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bar.Finish()
+
+	return nil
+}
+
 func MakeDirs(s string) error {
 	_, err := os.Stat(s)
 	if err == os.ErrExist {

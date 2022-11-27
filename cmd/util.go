@@ -300,6 +300,17 @@ func TarballDir(src string, dst string) error {
 	}
 	defer fdst.Close()
 
+	var bufDst *bufio.Writer
+	if bufferMB > 0 && bufferMB < 1025 {
+		bufDst = bufio.NewWriterSize(bufio.NewWriter(fdst), bufferMB<<20)
+	} else {
+		bufDst = bufio.NewWriter(fdst)
+	}
+
+	defer func() {
+		bufDst.Flush()
+	}()
+
 	format := archiver.CompressedArchive{
 		Compression: nil,
 		Archival:    archiver.Tar{},
@@ -307,7 +318,7 @@ func TarballDir(src string, dst string) error {
 
 	bar := progressbar.DefaultBytes(-1)
 
-	err = format.Archive(context.Background(), io.MultiWriter(fdst, bar), files)
+	err = format.Archive(context.Background(), io.MultiWriter(bufDst, bar), files)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -13,6 +13,7 @@ import (
 
 var (
 	filesMap map[string]string
+	bufferMB int
 )
 
 // tarCmd represents the tar command
@@ -34,6 +35,8 @@ var tarCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(tarCmd)
+	tarCmd.Flags().IntVar(&bufferMB, "buffer-mb", 8, "buffer size: 1~1024")
+
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")
 }

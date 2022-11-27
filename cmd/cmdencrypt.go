@@ -26,9 +26,9 @@ var encryptCmd = &cobra.Command{
 		if Output == "" {
 			inputExt := filepath.Ext(Input)
 			if inputExt == "" {
-				Output = strings.Join([]string{Input, "aes"}, ".")
+				Output = strings.Join([]string{Input, "enc"}, ".")
 			} else {
-				Output = strings.Replace(Input, inputExt, ".aes"+inputExt, 1)
+				Output = strings.Replace(Input, inputExt, ".enc"+inputExt, 1)
 			}
 		}
 	},

@@ -24,7 +24,7 @@ var unzipCmd = &cobra.Command{
 
 		if Output == "" {
 			log.Println("you can use --output=your-filepath for saving")
-			Output = strings.Replace(Input, ".gz", "", -1)
+			Output = strings.Replace(Input, ".gz", "", 1)
 			_, err := os.Stat(Output)
 			if err == nil {
 				t := time.Now().Format("20060102150405")

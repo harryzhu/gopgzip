@@ -5,6 +5,8 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"strings"
+	//"os"
 	//"fmt"
 	"log"
 
@@ -13,18 +15,22 @@ import (
 
 var (
 	filesMap map[string]string
-	bufferMB int
 )
 
 // tarCmd represents the tar command
 var tarCmd = &cobra.Command{
 	Use:   "tar",
-	Short: "tar --input=your-dir --output=/the/path/where/you/want/to/save.tar",
-	Long:  ``,
+	Short: "tar --input=/the/root/dir/you/want/to/tar --output=/the/path/where/you/want/to/save.tar",
+	Long:  `--input= is a folder, --output= is a file.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if Input == "" || Output == "" {
-			log.Fatal("--input= and --output= cannot be empty")
+		if Input == "" {
+			log.Fatal("--input= cannot be empty")
 		}
+
+		if Output == "" {
+			Output = strings.Join([]string{Input, "tar"}, ".")
+		}
+
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "tar is running ...")
@@ -35,7 +41,6 @@ var tarCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(tarCmd)
-	tarCmd.Flags().IntVar(&bufferMB, "buffer-mb", 8, "buffer size: 1~1024")
 
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")

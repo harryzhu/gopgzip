@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	Input  string
-	Output string
+	Input    string
+	Output   string
+	bufferMB int
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -23,6 +24,10 @@ var rootCmd = &cobra.Command{
 	Long:  `-`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if bufferMB < 0 || bufferMB > 2048 {
+			bufferMB = 16
+		}
+
 		if Output != "" {
 			MakeDirs(filepath.Dir(Output))
 		}
@@ -45,4 +50,5 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&Input, "input", "", "input file you want to zip")
 	rootCmd.PersistentFlags().StringVar(&Output, "output", "", "output file you want to save")
+	rootCmd.PersistentFlags().IntVar(&bufferMB, "buffer-mb", 64, "1~2048,must less than memory available|SSD: greater is better, HDD: lower is better")
 }

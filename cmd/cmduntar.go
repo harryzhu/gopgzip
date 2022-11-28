@@ -5,9 +5,9 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"os"
 	//"fmt"
 	"log"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -21,10 +21,15 @@ var untarCmd = &cobra.Command{
 		if Input == "" || Output == "" {
 			log.Fatal("--input= and --output= cannot be empty")
 		}
-		finfo, err := os.Stat(Output)
 
-		if err == nil && finfo.IsDir() == false {
-			log.Fatal("--output= should be a folder, not a single file")
+		_, err := os.Stat(Input)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = MakeDirs(Output)
+		if err != nil {
+			log.Fatal(err)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {

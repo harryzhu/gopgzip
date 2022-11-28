@@ -19,6 +19,11 @@ var zipCmd = &cobra.Command{
 	Use:   "zip",
 	Short: "zip --input=your-local-file.txt --output=your-backup.gz",
 	Long:  `-`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if BlockSizeMB < 0 || BlockSizeMB > 512 {
+			BlockSizeMB = 16
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "zip is running ...")
 

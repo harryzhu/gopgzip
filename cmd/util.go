@@ -7,12 +7,16 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+
+	//"sync"
 	"time"
 
 	//"github.com/klauspost/compress/zstd"
@@ -24,6 +28,8 @@ import (
 
 func CompressZip(src, dst string) {
 	numCPU := runtime.NumCPU()
+	runtime.LockOSThread()
+	runtime.GOMAXPROCS(numCPU)
 
 	var selectNumCPU int = 1
 
@@ -57,46 +63,27 @@ func CompressZip(src, dst string) {
 		cLevel = gzip.DefaultCompression
 	}
 
-	runtime.LockOSThread()
-	runtime.GOMAXPROCS(numCPU)
-
 	tStart := time.Now()
 
-	fsrc, err := os.Open(src)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer fsrc.Close()
+	fsrc, fsrcInfo, fsrcHandler := NewBufReader(src)
 
 	dstTemp := strings.Join([]string{dst, "ing"}, "")
-	fdst, err := os.Create(dstTemp)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer fdst.Close()
 
-	finfoSrc, err := os.Stat(src)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fdst, fh := NewBufWriter(dstTemp)
 
 	w, err := gzip.NewWriterLevel(fdst, cLevel)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer w.Close()
 
-	var BlockSizeByte int = 16 << 20
-	if BlockSizeMB > 0 {
-		BlockSizeByte = BlockSizeMB << 20
-	}
+	var BlockSizeByte int = BlockSizeMB << 20
 
 	w.SetConcurrency(BlockSizeByte, selectNumCPU)
 
 	log.Printf("threads: %v, block-size: %v MB", selectNumCPU, BlockSizeMB)
 
-	bar := progressbar.DefaultBytes(finfoSrc.Size())
+	bar := progressbar.DefaultBytes(fsrcInfo.Size())
 	_, err = io.Copy(io.MultiWriter(w, bar), fsrc)
 	if err != nil {
 		log.Fatal(err)
@@ -104,7 +91,9 @@ func CompressZip(src, dst string) {
 	bar.Finish()
 
 	w.Close()
-	fdst.Close()
+	fdst.Flush()
+	fh.Close()
+	fsrcHandler.Close()
 
 	_, err = os.Stat(dst)
 	if err == nil {
@@ -128,29 +117,24 @@ func CompressZip(src, dst string) {
 }
 
 func DecompressZip(src string, dst string) error {
-	fsrc, err := os.Open(src)
-	defer fsrc.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
+	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
+
 	dstTemp := strings.Join([]string{dst, "unzipping"}, ".")
-	fdst, err := os.Create(dstTemp)
-	defer fdst.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
+	fdst, fhdst := NewBufWriter(dstTemp)
 
 	reader, err := gzip.NewReader(fsrc)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	bar := progressbar.DefaultBytes(-1, "unzipping ...")
+	bar := progressbar.DefaultBytes(fsrcInfo.Size(), "unzipping ...")
 
 	_, err = reader.WriteTo(io.MultiWriter(fdst, bar))
 	if err != nil {
 		log.Fatal(err)
 	}
+	fhdst.Close()
+	fhsrc.Close()
 
 	err = os.Rename(dstTemp, dst)
 	if err != nil {
@@ -162,20 +146,12 @@ func DecompressZip(src string, dst string) error {
 }
 
 func MD5File(src string) string {
-	f, err := os.Open(src)
-	defer f.Close()
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	reader, srcInfo, fhsrc := NewBufReader(src)
 	tStart := time.Now()
-
 	hash := md5.New()
 
-	var bufferSize = 64 << 20
-	var buf []byte = make([]byte, bufferSize)
-
-	reader := bufio.NewReader(f)
+	var buf []byte = make([]byte, bufferMB)
+	bar := progressbar.DefaultBytes(srcInfo.Size())
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -186,9 +162,11 @@ func MD5File(src string) string {
 		}
 		//log.Println(n)
 		hash.Write(buf[:n])
-
+		bar.Add(n)
 	}
 	tStop := time.Now()
+	bar.Finish()
+	fhsrc.Close()
 	log.Printf("duration: %v sec", tStop.Sub(tStart))
 	return hex.EncodeToString(hash.Sum(nil))
 }
@@ -202,27 +180,13 @@ func SaveFile(src string, data []byte) error {
 }
 
 func Blake3SumFile(src string) string {
-	f, err := os.Open(src)
-	defer f.Close()
-
-	if err != nil {
-		log.Fatal(err)
-	}
 	tStart := time.Now()
-
 	hash := blake3.New()
 
-	finfo, err := os.Stat(src)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fsize := finfo.Size()
-	bar := progressbar.DefaultBytes(fsize)
+	reader, fsrcInfo, fhsrc := NewBufReader(src)
+	bar := progressbar.DefaultBytes(fsrcInfo.Size())
 
-	var bufferSize = 32 << 20
-	var buf []byte = make([]byte, bufferSize)
-
-	reader := bufio.NewReader(f)
+	var buf []byte = make([]byte, bufferMB)
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -237,6 +201,7 @@ func Blake3SumFile(src string) string {
 	bar.Finish()
 	tStop := time.Now()
 
+	fhsrc.Close()
 	log.Printf("duration: %v sec", tStop.Sub(tStart))
 	return hex.EncodeToString(hash.Sum(nil))
 }
@@ -273,16 +238,26 @@ func Colorint(c string, s string) error {
 }
 
 func setFilesMap(src string) error {
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !srcInfo.IsDir() {
+		log.Fatal(src + " should be a folder")
+	}
+
+	src = strings.ReplaceAll(src, "\\", "/")
+	src = strings.TrimRight(src, "/")
 	filesMap = make(map[string]string, 100)
 
 	var walkFunc = func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			filesMap[path] = strings.Trim(strings.Replace(path, src, "", 1), "/")
+			filesMap[path] = strings.Trim(strings.Replace(path, src[:strings.LastIndex(src, "/")], "", 1), "/")
 		}
 
 		return nil
 	}
-	err := filepath.Walk(src, walkFunc)
+	err = filepath.Walk(src, walkFunc)
 	return err
 }
 
@@ -294,18 +269,8 @@ func TarballDir(src string, dst string) error {
 	}
 
 	dstTemp := strings.Join([]string{dst, "ing"}, "")
-	fdst, err := os.Create(dstTemp)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer fdst.Close()
 
-	var bufDst *bufio.Writer
-	if bufferMB > 0 && bufferMB < 1025 {
-		bufDst = bufio.NewWriterSize(bufio.NewWriter(fdst), bufferMB<<20)
-	} else {
-		bufDst = bufio.NewWriter(fdst)
-	}
+	bufDst, fhdst := NewBufWriter(dstTemp)
 
 	defer func() {
 		bufDst.Flush()
@@ -323,6 +288,9 @@ func TarballDir(src string, dst string) error {
 		log.Fatal(err)
 	}
 
+	bufDst.Flush()
+	fhdst.Close()
+
 	err = os.Rename(dstTemp, dst)
 	if err != nil {
 		log.Fatal(err)
@@ -336,11 +304,9 @@ func TarballDir(src string, dst string) error {
 }
 
 func Untarball(src string, dst string) error {
-	fsrc, err := os.Open(src)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fsrc, _, fhsrc := NewBufReader(src)
 	bar := progressbar.DefaultBytes(-1)
+	wg := sync.WaitGroup{}
 
 	format := archiver.Tar{}
 
@@ -356,29 +322,40 @@ func Untarball(src string, dst string) error {
 		if err != nil {
 			log.Println(err)
 		}
-
 		srcData, err := io.ReadAll(rc)
-		dstName := filepath.Join(Output, f.NameInArchive)
-		//log.Println(srcStat.Mode(), " ", dstName)
-
+		dstName := filepath.Join(dst, f.NameInArchive)
 		MakeDirs(filepath.Dir(dstName))
 
-		err = ioutil.WriteFile(dstName, srcData, srcStat.Mode())
-
-		if err != nil {
-			log.Println(err)
+		//fmt.Println(dstName)
+		if srcStat.Size() > 16<<20 {
+			err = ioutil.WriteFile(dstName, srcData, srcStat.Mode())
+			if err != nil {
+				log.Println(err)
+			}
+		} else {
+			wg.Add(1)
+			go func() {
+				err = ioutil.WriteFile(dstName, srcData, srcStat.Mode())
+				if err != nil {
+					log.Println(err)
+				}
+				wg.Done()
+			}()
 		}
 
 		bar.Add64(srcStat.Size())
+
 		return err
 	}
 
-	err = format.Extract(context.Background(), fsrc, nil, handler)
+	err := format.Extract(context.Background(), fsrc, nil, handler)
 	if err != nil {
 		log.Fatal(err)
 	}
 	bar.Finish()
+	fhsrc.Close()
 
+	wg.Wait()
 	return nil
 }
 
@@ -390,6 +367,30 @@ func MakeDirs(s string) error {
 	err = os.MkdirAll(s, os.ModePerm)
 	if err != nil {
 		log.Println(err)
+		return err
 	}
-	return err
+	return nil
+}
+
+func NewBufWriter(f string) (*bufio.Writer, *os.File) {
+	fh, err := os.Create(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return bufio.NewWriterSize(bufio.NewWriter(fh), bufferMB), fh
+}
+
+func NewBufReader(f string) (*bufio.Reader, fs.FileInfo, *os.File) {
+	finfo, err := os.Stat(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fh, err := os.Open(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return bufio.NewReaderSize(bufio.NewReader(fh), bufferMB), finfo, fh
 }

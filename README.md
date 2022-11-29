@@ -10,8 +10,8 @@
 ### Performance:
 221GB: zip to 100GB in 44 minutes
 
- - --threads=1 ~ your-total-cpu-core
- - --level=0|1|6|9:
+ - `--threads=6`: from 1 to maximum(your-total-cpu-core)
+ - `--level=0|1|6|9`:
    - 0 - No Compression
    - 1 - Best Speed
    - 6 - Default Compression

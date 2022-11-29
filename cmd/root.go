@@ -5,8 +5,10 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -15,6 +17,8 @@ var (
 	Input    string
 	Output   string
 	bufferMB int
+	tStart   time.Time
+	tStop    time.Time
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -24,8 +28,9 @@ var rootCmd = &cobra.Command{
 	Long:  `-`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		tStart = time.Now()
 		if bufferMB < 0 || bufferMB > 2048 {
-			bufferMB = 16
+			bufferMB = 8
 		}
 
 		if Output != "" {
@@ -34,7 +39,8 @@ var rootCmd = &cobra.Command{
 
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
-
+		tStop = time.Now()
+		log.Printf("duration: %v sec", tStop.Sub(tStart))
 	},
 }
 

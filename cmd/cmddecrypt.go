@@ -15,8 +15,8 @@ import (
 // decryptCmd represents the decrypt command
 var decryptCmd = &cobra.Command{
 	Use:   "decrypt",
-	Short: "decrypt --input=your-encrypted-file --output=/where/you/want/to/decrypt/filename",
-	Long:  `-`,
+	Short: "decrypt --input=your-encrypted-file --output=/where/you/want/to/decrypt/filename [--password= --force]",
+	Long:  passwordTips,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {
 			log.Fatal("--input= cannot be empty")
@@ -30,6 +30,15 @@ var decryptCmd = &cobra.Command{
 				Output = strings.Replace(Input, inputExt, ".dec"+inputExt, 1)
 			}
 		}
+		if Password != "" {
+			Colorintln("yellow", passwordTips)
+		}
+
+		if Password != "" && Force == false {
+			log.Fatal("--password= must be with --force")
+		}
+
+		setKeyPasswordIV()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "decrypt is running ...")
@@ -39,6 +48,9 @@ var decryptCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(decryptCmd)
+	decryptCmd.Flags().StringVar(&Password, "password", "", "password for encrypt")
+	decryptCmd.Flags().BoolVar(&Force, "force", false, "force")
+
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")
 }

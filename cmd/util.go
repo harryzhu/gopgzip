@@ -17,7 +17,7 @@ import (
 	"sync"
 
 	//"sync"
-	"time"
+	//"time"
 
 	//"github.com/klauspost/compress/zstd"
 	gzip "github.com/klauspost/pgzip"
@@ -63,8 +63,6 @@ func CompressZip(src, dst string) {
 		cLevel = gzip.DefaultCompression
 	}
 
-	tStart := time.Now()
-
 	fsrc, fsrcInfo, fsrcHandler := NewBufReader(src)
 
 	dstTemp := strings.Join([]string{dst, "ing"}, "")
@@ -107,12 +105,9 @@ func CompressZip(src, dst string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tStop := time.Now()
-	duration := tStop.Sub(tStart)
 
 	fullpathDst, _ := filepath.Abs(dst)
 
-	log.Printf("OK. duration: %v sec\n", duration)
 	Colorintln("green", "file: "+fullpathDst+"\n")
 }
 
@@ -147,7 +142,6 @@ func DecompressZip(src string, dst string) error {
 
 func MD5File(src string) string {
 	reader, srcInfo, fhsrc := NewBufReader(src)
-	tStart := time.Now()
 	hash := md5.New()
 
 	var buf []byte = make([]byte, bufferMB)
@@ -164,10 +158,10 @@ func MD5File(src string) string {
 		hash.Write(buf[:n])
 		bar.Add(n)
 	}
-	tStop := time.Now()
+
 	bar.Finish()
 	fhsrc.Close()
-	log.Printf("duration: %v sec", tStop.Sub(tStart))
+
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
@@ -180,7 +174,6 @@ func SaveFile(src string, data []byte) error {
 }
 
 func Blake3SumFile(src string) string {
-	tStart := time.Now()
 	hash := blake3.New()
 
 	reader, fsrcInfo, fhsrc := NewBufReader(src)
@@ -199,10 +192,8 @@ func Blake3SumFile(src string) string {
 		bar.Add64(int64(n))
 	}
 	bar.Finish()
-	tStop := time.Now()
 
 	fhsrc.Close()
-	log.Printf("duration: %v sec", tStop.Sub(tStart))
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
@@ -228,6 +219,10 @@ func Colorint(c string, s string) error {
 	case "green":
 		{
 			fmt.Printf("\033[1;32;40m%s\033[0m\n", s)
+		}
+	case "yellow":
+		{
+			fmt.Printf("\033[1;33;40m%s\033[0m\n", s)
 		}
 	default:
 		{
@@ -270,10 +265,10 @@ func TarballDir(src string, dst string) error {
 
 	dstTemp := strings.Join([]string{dst, "ing"}, "")
 
-	bufDst, fhdst := NewBufWriter(dstTemp)
+	bufdst, fhdst := NewBufWriter(dstTemp)
 
 	defer func() {
-		bufDst.Flush()
+		bufdst.Flush()
 	}()
 
 	format := archiver.CompressedArchive{
@@ -283,12 +278,12 @@ func TarballDir(src string, dst string) error {
 
 	bar := progressbar.DefaultBytes(-1)
 
-	err = format.Archive(context.Background(), io.MultiWriter(bufDst, bar), files)
+	err = format.Archive(context.Background(), io.MultiWriter(bufdst, bar), files)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	bufDst.Flush()
+	bufdst.Flush()
 	fhdst.Close()
 
 	err = os.Rename(dstTemp, dst)
@@ -327,7 +322,7 @@ func Untarball(src string, dst string) error {
 		MakeDirs(filepath.Dir(dstName))
 
 		//fmt.Println(dstName)
-		if srcStat.Size() > 16<<20 {
+		if srcStat.Size() > 32<<20 {
 			err = ioutil.WriteFile(dstName, srcData, srcStat.Mode())
 			if err != nil {
 				log.Println(err)

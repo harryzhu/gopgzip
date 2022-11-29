@@ -5,8 +5,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
+	"crypto/sha256"
 	"io"
-	"time"
+	"strings"
 
 	"encoding/hex"
 
@@ -21,10 +22,36 @@ const AESBLOCKSIZE int = 16
 
 // PwdKey length can be 16
 
-var PwdKey = []byte(MD5(GetEnv("HAZHUENCRYPTKEY", "This(*Key*)@2021This(*Key*)@2021")))[:AESBLOCKSIZE]
-var IVKey = []byte(MD5(GetEnv("HAZHUENCRYPTKEY", "That(*Key*)@2021That(*Key*)@2021")))[:AESBLOCKSIZE]
+var (
+	PwdKey []byte
+	IVKey  []byte
+)
 
 // ------------
+
+func setKeyPasswordIV() {
+	var salt string = SHA256("Cu5t0m-s@lt")
+	var p string
+	if Password != "" && Force {
+		p = Password
+	} else {
+		p = GetEnv("HARRYZHUENCRYPTKEY", passwordDefault)
+	}
+
+	if p == "" {
+		log.Fatal("you did not set any password")
+	}
+
+	pk := SHA256(MD5(p) + ":" + salt)
+	ivk := SHA256(MD5(pk) + ":" + salt)
+
+	PwdKey = []byte(pk)[:AESBLOCKSIZE]
+	IVKey = []byte(ivk)[:AESBLOCKSIZE]
+
+	if PwdKey == nil || IVKey == nil {
+		log.Fatal("password and iv key cannot be empty")
+	}
+}
 
 func AESEncodeFile(src string, dst string) error {
 	fsrc, err := os.Open(src)
@@ -43,7 +70,6 @@ func AESEncodeFile(src string, dst string) error {
 		log.Fatal(err)
 	}
 
-	tStart := time.Now()
 	bar := progressbar.DefaultBytes(srcInfo.Size())
 
 	iv := []byte(IVKey)
@@ -83,10 +109,6 @@ func AESEncodeFile(src string, dst string) error {
 	}
 
 	bar.Finish()
-	tStop := time.Now()
-	duration := tStop.Sub(tStart)
-
-	log.Printf("OK. duration: %v sec\n", duration)
 
 	Colorintln("green", "file: "+dst)
 	return nil
@@ -108,8 +130,6 @@ func AESDecodeFile(src string, dst string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	tStart := time.Now()
 
 	bar := progressbar.DefaultBytes(srcInfo.Size())
 
@@ -151,10 +171,7 @@ func AESDecodeFile(src string, dst string) error {
 		bar.Add64(int64(n))
 	}
 	bar.Finish()
-	tStop := time.Now()
-	duration := tStop.Sub(tStart)
 
-	log.Printf("OK. duration: %v sec\n", duration)
 	Colorintln("green", "file: "+dst)
 	return nil
 }
@@ -164,11 +181,17 @@ func GetEnv(s string, vDefault string) string {
 	if v == "" {
 		return vDefault
 	}
-	return v
+	return strings.Trim(v, " ")
 }
 
 func MD5(s string) string {
 	h := md5.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func SHA256(s string) string {
+	h := sha256.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
 }

@@ -19,8 +19,10 @@ var unzipCmd = &cobra.Command{
 	Use:   "unzip",
 	Short: "unzip --input=your-local-gzip-file.gz [--output=unzip-to-local-disk-filename]",
 	Long:  `-`,
-	Run: func(cmd *cobra.Command, args []string) {
-		Colorintln("green", "unzip is running ...")
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if Input == "" {
+			log.Fatal("--input= cannot be empty")
+		}
 
 		if Output == "" {
 			log.Println("you can use --output=your-filepath for saving")
@@ -32,6 +34,11 @@ var unzipCmd = &cobra.Command{
 			}
 			log.Println("the default file(in the same folder): " + Output)
 		}
+
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		Colorintln("green", "unzip is running ...")
+
 		DecompressZip(Input, Output)
 	},
 }

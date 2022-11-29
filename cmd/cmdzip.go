@@ -5,6 +5,8 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
+
 	"github.com/spf13/cobra"
 )
 
@@ -20,16 +22,21 @@ var zipCmd = &cobra.Command{
 	Short: "zip --input=your-local-file.txt --output=your-backup.gz",
 	Long:  `-`,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if BlockSizeMB < 0 || BlockSizeMB > 512 {
-			BlockSizeMB = 16
+		if Input == "" {
+			log.Fatal("--input= cannot be empty")
 		}
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		Colorintln("green", "zip is running ...")
 
 		if Output == "" {
 			Output = Input + ".gz"
 		}
+
+		if BlockSizeMB < 0 || BlockSizeMB > 512 {
+			BlockSizeMB = 16
+		}
+
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		Colorintln("green", "zip is running ...")
 
 		CompressZip(Input, Output)
 	},

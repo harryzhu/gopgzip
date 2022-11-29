@@ -246,6 +246,7 @@ func setFilesMap(src string) error {
 	filesMap = make(map[string]string, 100)
 
 	var walkFunc = func(path string, info os.FileInfo, err error) error {
+		path = strings.ReplaceAll(path, "\\", "/")
 		if !info.IsDir() {
 			filesMap[path] = strings.Trim(strings.Replace(path, src[:strings.LastIndex(src, "/")], "", 1), "/")
 		}
@@ -275,6 +276,19 @@ func TarballDir(src string, dst string) error {
 		Compression: nil,
 		Archival:    archiver.Tar{},
 	}
+	if fileCompression == 1 {
+		format = archiver.CompressedArchive{
+			Compression: archiver.Gz{},
+			Archival:    archiver.Tar{},
+		}
+	}
+
+	if fileCompression == 2 {
+		format = archiver.CompressedArchive{
+			Compression: archiver.Zstd{},
+			Archival:    archiver.Tar{},
+		}
+	}
 
 	bar := progressbar.DefaultBytes(-1)
 
@@ -303,7 +317,25 @@ func Untarball(src string, dst string) error {
 	bar := progressbar.DefaultBytes(-1)
 	wg := sync.WaitGroup{}
 
-	format := archiver.Tar{}
+	//format := archiver.Tar{}
+	format := archiver.CompressedArchive{
+		Compression: nil,
+		Archival:    archiver.Tar{},
+	}
+
+	if fileCompression == 1 {
+		format = archiver.CompressedArchive{
+			Compression: archiver.Gz{},
+			Archival:    archiver.Tar{},
+		}
+	}
+
+	if fileCompression == 2 {
+		format = archiver.CompressedArchive{
+			Compression: archiver.Zstd{},
+			Archival:    archiver.Tar{},
+		}
+	}
 
 	handler := func(ctx context.Context, f archiver.File) error {
 		rc, err := f.Open()

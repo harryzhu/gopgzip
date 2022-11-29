@@ -17,7 +17,7 @@ import (
 // unzipCmd represents the unzip command
 var unzipCmd = &cobra.Command{
 	Use:   "unzip",
-	Short: "unzip --input=your-local-gzip-file.gz [--output=unzip-to-local-disk-filename]",
+	Short: "unzip --input=your-local-gzip-file.gz [--output=unzip-to-local-disk-file]",
 	Long:  `-`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {

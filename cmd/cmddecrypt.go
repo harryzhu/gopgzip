@@ -30,14 +30,8 @@ var decryptCmd = &cobra.Command{
 				Output = strings.Replace(Input, inputExt, ".dec"+inputExt, 1)
 			}
 		}
-		if Password != "" {
-			Colorintln("yellow", passwordTips)
-		}
 
-		if Password != "" && Force == false {
-			log.Fatal("--password= must be with --force")
-		}
-
+		PasswordTips()
 		setKeyPasswordIV()
 	},
 	Run: func(cmd *cobra.Command, args []string) {

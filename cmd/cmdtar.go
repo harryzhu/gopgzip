@@ -14,14 +14,16 @@ import (
 )
 
 var (
-	filesMap map[string]string
+	filesMap        map[string]string
+	fileCompression int
 )
 
 // tarCmd represents the tar command
 var tarCmd = &cobra.Command{
 	Use:   "tar",
-	Short: "tar --input=/the/root/dir/you/want/to/tar --output=/the/path/where/you/want/to/save.tar",
-	Long:  `--input= is a folder, --output= is a file.`,
+	Short: "tar --input=/the/folder/you/want/to/tar --output=/the/file/where/you/want/to/save.tar",
+	Long: `--input= is a folder, --output= is a file,
+	--compression if you select 2(zstd) to tar, you need to select 2(zstd) to untar`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {
 			log.Fatal("--input= cannot be empty")
@@ -41,7 +43,7 @@ var tarCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(tarCmd)
-
+	tarCmd.Flags().IntVar(&fileCompression, "compression", 0, "0=None,1=gzip,2=zstd")
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")
 }

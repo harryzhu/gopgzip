@@ -5,14 +5,16 @@
 
 ## tar a folder recursively
 `./gopgzip tar --input=/the/path/of/the/folder --output=/home/harryzhu/test/abc.tar`
-you can add --compression=0|1|2 to define:
-0 - No Compression
-1 - gzip Compression
-2 - zstd Compression
+
+ you can add --compression=0|1|2 to define:
+ 0 - No Compression
+ 1 - gzip Compression
+ 2 - zstd Compression
 
 ## untar a file
 `./gopgzip untar --input=/home/harryzhu/test/abc.tar --output=/the/path/of/the/folder`
-you have to add --compression=0|1|2 same as the [tar] above 
+
+ you have to add --compression=0|1|2 same as the [tar] above 
 
 ## zip a file
 `./gopgzip zip --input=/home/harryzhu/test/abc.tar --output=/the/path/of/the/abc.tar.gz --thread=6 --level=9`

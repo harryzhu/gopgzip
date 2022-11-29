@@ -26,11 +26,11 @@
 
  * --level=0|1|6|9: 
 
- **  0 - No Compression
+  **  0 - No Compression
 
- **  1 - Best Speed
+  **  1 - Best Speed
  
- **  6 - Default Compression
+  **  6 - Default Compression
 
  9 - Best Compression
 

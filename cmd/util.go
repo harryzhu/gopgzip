@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -141,11 +142,10 @@ func DecompressZip(src string, dst string) error {
 }
 
 func MD5File(src string) string {
-	reader, srcInfo, fhsrc := NewBufReader(src)
+	reader, _, fhsrc := NewBufReader(src)
 	hash := md5.New()
 
 	var buf []byte = make([]byte, bufferMB)
-	bar := progressbar.DefaultBytes(srcInfo.Size())
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -156,10 +156,29 @@ func MD5File(src string) string {
 		}
 		//log.Println(n)
 		hash.Write(buf[:n])
-		bar.Add(n)
 	}
 
-	bar.Finish()
+	fhsrc.Close()
+
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func SHA256File(src string) string {
+	reader, _, fhsrc := NewBufReader(src)
+	hash := sha256.New()
+
+	var buf []byte = make([]byte, bufferMB)
+	for {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatal(err)
+		}
+		hash.Write(buf[:n])
+	}
+
 	fhsrc.Close()
 
 	return hex.EncodeToString(hash.Sum(nil))
@@ -175,9 +194,7 @@ func SaveFile(src string, data []byte) error {
 
 func Blake3SumFile(src string) string {
 	hash := blake3.New()
-
-	reader, fsrcInfo, fhsrc := NewBufReader(src)
-	bar := progressbar.DefaultBytes(fsrcInfo.Size())
+	reader, _, fhsrc := NewBufReader(src)
 
 	var buf []byte = make([]byte, bufferMB)
 	for {
@@ -189,9 +206,7 @@ func Blake3SumFile(src string) string {
 			log.Fatal(err)
 		}
 		hash.Write(buf[:n])
-		bar.Add64(int64(n))
 	}
-	bar.Finish()
 
 	fhsrc.Close()
 	return hex.EncodeToString(hash.Sum(nil))

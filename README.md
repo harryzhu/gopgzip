@@ -19,7 +19,7 @@
 
 ## unzip a file
 ```
-./gopgzip unzip --input=/home/harryzhu/test/abc.tar.gz --output=/the/path/of/the/abc.tar`
+./gopgzip unzip --input=/home/harryzhu/test/abc.tar.gz --output=/the/path/of/the/abc.tar
 ```
 
 ## tar a folder recursively

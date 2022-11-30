@@ -19,6 +19,7 @@ var (
 	bufferMB int
 	tStart   time.Time
 	tStop    time.Time
+	isDebug  bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -57,4 +58,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&Input, "input", "", "source file or folder(only [tar] need a folder here)")
 	rootCmd.PersistentFlags().StringVar(&Output, "output", "", "target file or folder(only [untar] need a folder here)")
 	rootCmd.PersistentFlags().IntVar(&bufferMB, "buffer-mb", 64, "1~2048,must < memory-available-mb|SSD: greater is better, HDD: lower is better")
+	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "will show more info if true")
+
 }

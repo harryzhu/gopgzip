@@ -82,12 +82,16 @@ func CompressZip(src, dst string) {
 
 	log.Printf("threads: %v, block-size: %v MB", selectNumCPU, BlockSizeMB)
 
-	bar := progressbar.DefaultBytes(fsrcInfo.Size())
-	_, err = io.Copy(io.MultiWriter(w, bar), fsrc)
+	if isDebug {
+		bar := progressbar.DefaultBytes(fsrcInfo.Size())
+		_, err = io.Copy(io.MultiWriter(w, bar), fsrc)
+		bar.Finish()
+	} else {
+		_, err = io.Copy(w, fsrc)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
-	bar.Finish()
 
 	w.Close()
 	fdst.Flush()
@@ -123,9 +127,14 @@ func DecompressZip(src string, dst string) error {
 		log.Fatal(err)
 	}
 
-	bar := progressbar.DefaultBytes(fsrcInfo.Size(), "unzipping ...")
+	if isDebug {
+		bar := progressbar.DefaultBytes(fsrcInfo.Size(), "unzipping ...")
+		_, err = reader.WriteTo(io.MultiWriter(fdst, bar))
+		bar.Finish()
+	} else {
+		_, err = reader.WriteTo(fdst)
+	}
 
-	_, err = reader.WriteTo(io.MultiWriter(fdst, bar))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -137,7 +146,6 @@ func DecompressZip(src string, dst string) error {
 		log.Fatal(err)
 	}
 
-	bar.Finish()
 	return nil
 }
 
@@ -305,22 +313,31 @@ func TarballDir(src string, dst string) error {
 		}
 	}
 
-	bar := progressbar.DefaultBytes(-1)
+	if isDebug {
+		bar := progressbar.DefaultBytes(-1)
+		err = format.Archive(context.Background(), io.MultiWriter(bufdst, bar), files)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	err = format.Archive(context.Background(), io.MultiWriter(bufdst, bar), files)
-	if err != nil {
-		log.Fatal(err)
+		bufdst.Flush()
+		fhdst.Close()
+		bar.Finish()
+	} else {
+		err = format.Archive(context.Background(), bufdst, files)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		bufdst.Flush()
+		fhdst.Close()
 	}
-
-	bufdst.Flush()
-	fhdst.Close()
 
 	err = os.Rename(dstTemp, dst)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	bar.Finish()
 	fullpathDst, _ := filepath.Abs(dst)
 	Colorintln("green", "file: "+fullpathDst)
 

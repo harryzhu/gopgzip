@@ -13,8 +13,6 @@ import (
 
 	"log"
 	"os"
-
-	progressbar "github.com/schollz/progressbar/v3"
 )
 
 const passwordDefault string = "This(*Key*)@2021That[#Key$]&1202"
@@ -78,12 +76,10 @@ func AESEncodeFile(src string, dst string) error {
 		log.Fatal(err)
 	}
 
-	srcInfo, err := os.Stat(src)
+	_, err = os.Stat(src)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	bar := progressbar.DefaultBytes(srcInfo.Size())
 
 	iv := []byte(IVKey)
 
@@ -101,7 +97,6 @@ func AESEncodeFile(src string, dst string) error {
 		n, err := srcReader.Read(buf)
 		if n == 0 {
 			if err == io.EOF {
-				//log.Println("EOF")
 				break
 			}
 
@@ -109,7 +104,6 @@ func AESEncodeFile(src string, dst string) error {
 				log.Println(err)
 				break
 			}
-
 		}
 		encByte := make([]byte, n)
 		stream.XORKeyStream(encByte, buf[:n])
@@ -118,10 +112,7 @@ func AESEncodeFile(src string, dst string) error {
 		if err != nil {
 			log.Fatal(err)
 		}
-		bar.Add64(int64(n))
 	}
-
-	bar.Finish()
 
 	Colorintln("green", "file: "+dst)
 	return nil
@@ -139,12 +130,10 @@ func AESDecodeFile(src string, dst string) error {
 		log.Fatal(err)
 	}
 
-	srcInfo, err := os.Stat(src)
+	_, err = os.Stat(src)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	bar := progressbar.DefaultBytes(srcInfo.Size())
 
 	iv := []byte(IVKey)
 
@@ -181,9 +170,7 @@ func AESDecodeFile(src string, dst string) error {
 		if err != nil {
 			log.Fatal(err)
 		}
-		bar.Add64(int64(n))
 	}
-	bar.Finish()
 
 	Colorintln("green", "file: "+dst)
 	return nil

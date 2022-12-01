@@ -31,7 +31,7 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		tStart = time.Now()
 		if bufferMB < 0 || bufferMB > 2048 {
-			bufferMB = 8
+			bufferMB = 64
 		}
 
 		if Output != "" {

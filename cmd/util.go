@@ -162,7 +162,6 @@ func MD5File(src string) string {
 			}
 			log.Fatal(err)
 		}
-		//log.Println(n)
 		hash.Write(buf[:n])
 	}
 
@@ -346,7 +345,6 @@ func TarballDir(src string, dst string) error {
 
 func Untarball(src string, dst string) error {
 	fsrc, _, fhsrc := NewBufReader(src)
-	bar := progressbar.DefaultBytes(-1)
 	wg := sync.WaitGroup{}
 
 	//format := archiver.Tar{}
@@ -401,9 +399,6 @@ func Untarball(src string, dst string) error {
 				wg.Done()
 			}()
 		}
-
-		bar.Add64(srcStat.Size())
-
 		return err
 	}
 
@@ -411,7 +406,6 @@ func Untarball(src string, dst string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bar.Finish()
 	fhsrc.Close()
 
 	wg.Wait()

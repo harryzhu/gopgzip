@@ -71,15 +71,7 @@ func AESEncodeFile(src string, dst string) error {
 	}
 	defer fsrc.Close()
 
-	fdst, err := os.Create(dst)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = os.Stat(src)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fdst, fhdst := NewBufWriter(dst)
 
 	iv := []byte(IVKey)
 
@@ -113,6 +105,7 @@ func AESEncodeFile(src string, dst string) error {
 			log.Fatal(err)
 		}
 	}
+	fhdst.Close()
 
 	Colorintln("green", "file: "+dst)
 	return nil
@@ -125,15 +118,7 @@ func AESDecodeFile(src string, dst string) error {
 	}
 	defer fsrc.Close()
 
-	fdst, err := os.Create(dst)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = os.Stat(src)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fdst, fhdst := NewBufWriter(dst)
 
 	iv := []byte(IVKey)
 
@@ -151,7 +136,6 @@ func AESDecodeFile(src string, dst string) error {
 		n, err := srcReader.Read(buf)
 
 		if n == 0 {
-
 			if err == io.EOF {
 				//log.Println("EOF")
 				break
@@ -161,7 +145,6 @@ func AESDecodeFile(src string, dst string) error {
 				log.Println(err)
 				break
 			}
-
 		}
 		decByte := make([]byte, n)
 		stream.XORKeyStream(decByte, buf[:n])
@@ -171,6 +154,7 @@ func AESDecodeFile(src string, dst string) error {
 			log.Fatal(err)
 		}
 	}
+	fhdst.Close()
 
 	Colorintln("green", "file: "+dst)
 	return nil

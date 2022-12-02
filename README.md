@@ -50,9 +50,14 @@
 ./gopgzip decrypt --input=/home/harryzhu/test/abc.tar.enc --output=/the/path/of/the/abc.tar
 ```
 
-## md5sum a file: for a small file
+## md5 sum a file: for a small file
 ```
 ./gopgzip md5 --input=/home/harryzhu/test/abc.tar.gz [--output=/the/path/of/the/abc.tar.md5]
+```
+
+## sha256 sum a file: for a small file
+```
+./gopgzip sha256 --input=/home/harryzhu/test/abc.tar.gz [--output=/the/path/of/the/abc.tar.md5]
 ```
 
 ## b3sum a file: for a very large file

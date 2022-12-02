@@ -137,7 +137,6 @@ func AESDecodeFile(src string, dst string) error {
 
 		if n == 0 {
 			if err == io.EOF {
-				//log.Println("EOF")
 				break
 			}
 

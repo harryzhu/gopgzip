@@ -347,7 +347,6 @@ func Untarball(src string, dst string) error {
 	fsrc, _, fhsrc := NewBufReader(src)
 	wg := sync.WaitGroup{}
 
-	//format := archiver.Tar{}
 	format := archiver.CompressedArchive{
 		Compression: nil,
 		Archival:    archiver.Tar{},

@@ -19,7 +19,7 @@ var (
 // zipCmd represents the zip command
 var zipCmd = &cobra.Command{
 	Use:   "zip",
-	Short: "zip --input=your-local-file.txt --output=your-backup.gz",
+	Short: "zip --input=your-local-file.txt --output=your-backup.gz [--level=0|1|6|9 --threads=8]",
 	Long:  `-`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {

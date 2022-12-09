@@ -20,7 +20,7 @@ import (
 	//"sync"
 	//"time"
 
-	//"github.com/klauspost/compress/zstd"
+	"github.com/klauspost/compress/zstd"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/mholt/archiver/v4"
 	progressbar "github.com/schollz/progressbar/v3"
@@ -445,4 +445,36 @@ func NewBufReader(f string) (*bufio.Reader, fs.FileInfo, *os.File) {
 	}
 
 	return bufio.NewReaderSize(bufio.NewReader(fh), bufferMB), finfo, fh
+}
+
+func CompressWithZstd(src, dst string) error {
+	fsrc, _, fhsrc := NewBufReader(src)
+
+	dstTemp := strings.Join([]string{dst, "ing"}, "")
+
+	fdst, fhdst := NewBufWriter(dstTemp)
+
+	zw, err := zstd.NewWriter(fdst)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	_, err = io.Copy(fdst, fsrc)
+	if err != nil {
+		zw.Close()
+		log.Fatal(err)
+		return err
+	}
+
+	zw.Close()
+	fhdst.Close()
+	fhsrc.Close()
+
+	err = os.Rename(dstTemp, dst)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
 }

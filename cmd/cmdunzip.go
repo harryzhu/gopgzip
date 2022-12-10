@@ -39,7 +39,7 @@ var unzipCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "unzip is running ...")
 
-		DecompressZip(Input, Output)
+		DecompressWithGZip(Input, Output)
 	},
 }
 

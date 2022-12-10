@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -20,6 +21,10 @@ var (
 	tStart   time.Time
 	tStop    time.Time
 	isDebug  bool
+)
+
+var (
+	numCPU int
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -55,6 +60,11 @@ func Execute() {
 }
 
 func init() {
+	numCPU = runtime.NumCPU()
+	runtime.LockOSThread()
+	runtime.GOMAXPROCS(numCPU)
+
+	//
 	rootCmd.PersistentFlags().StringVar(&Input, "input", "", "source file or folder(only [tar] need a folder here)")
 	rootCmd.PersistentFlags().StringVar(&Output, "output", "", "target file or folder(only [untar] need a folder here)")
 	rootCmd.PersistentFlags().IntVar(&bufferMB, "buffer-mb", 64, "1~2048,must < memory-available-mb|SSD: greater is better, HDD: lower is better")

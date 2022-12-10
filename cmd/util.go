@@ -14,55 +14,26 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
 	"strings"
 	"sync"
 
 	//"sync"
 	//"time"
 
-	"github.com/klauspost/compress/zstd"
+	//"github.com/klauspost/compress/zstd"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/mholt/archiver/v4"
 	progressbar "github.com/schollz/progressbar/v3"
+
+	//"github.com/valyala/gozstd"
 	"github.com/zeebo/blake3"
 )
 
-func CompressZip(src, dst string) {
-	numCPU := runtime.NumCPU()
-	runtime.LockOSThread()
-	runtime.GOMAXPROCS(numCPU)
+func CompressWithGZip(src, dst string) {
 
-	var selectNumCPU int = 1
-
-	if numCPU > 1 && numCPU <= 4 {
-		selectNumCPU = 2
-	}
-
-	if numCPU > 4 && numCPU <= 8 {
-		selectNumCPU = 4
-	}
-
-	if numCPU > 8 {
-		selectNumCPU = numCPU - 4
-	}
-
-	if Threads <= numCPU && Threads > 0 {
-		selectNumCPU = Threads
-	}
-
-	var cLevel int = 6
-	switch Level {
-	case 0:
-		cLevel = gzip.NoCompression
-	case 1:
-		cLevel = gzip.BestSpeed
-	case 6:
-		cLevel = gzip.DefaultCompression
-	case 9:
-		cLevel = gzip.BestCompression
-	default:
-		cLevel = gzip.DefaultCompression
-	}
+	selectThreads := GetNumThreads()
+	cLevel := GetCompressLevel()
 
 	fsrc, fsrcInfo, fsrcHandler := NewBufReader(src)
 
@@ -78,9 +49,9 @@ func CompressZip(src, dst string) {
 
 	var BlockSizeByte int = BlockSizeMB << 20
 
-	w.SetConcurrency(BlockSizeByte, selectNumCPU)
+	w.SetConcurrency(BlockSizeByte, selectThreads)
 
-	log.Printf("threads: %v, block-size: %v MB", selectNumCPU, BlockSizeMB)
+	log.Printf("threads: %v, block-size: %v MB", selectThreads, BlockSizeMB)
 
 	if isDebug {
 		bar := progressbar.DefaultBytes(fsrcInfo.Size())
@@ -116,7 +87,7 @@ func CompressZip(src, dst string) {
 	Colorintln("green", "file: "+fullpathDst+"\n")
 }
 
-func DecompressZip(src string, dst string) error {
+func DecompressWithGZip(src string, dst string) error {
 	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
 
 	dstTemp := strings.Join([]string{dst, "unzipping"}, ".")
@@ -447,34 +418,42 @@ func NewBufReader(f string) (*bufio.Reader, fs.FileInfo, *os.File) {
 	return bufio.NewReaderSize(bufio.NewReader(fh), bufferMB), finfo, fh
 }
 
-func CompressWithZstd(src, dst string) error {
-	fsrc, _, fhsrc := NewBufReader(src)
-
-	dstTemp := strings.Join([]string{dst, "ing"}, "")
-
-	fdst, fhdst := NewBufWriter(dstTemp)
-
-	zw, err := zstd.NewWriter(fdst)
-	if err != nil {
-		log.Fatal(err)
-		return err
+func GetNumThreads() int {
+	if Threads <= numCPU && Threads > 0 {
+		return Threads
 	}
 
-	_, err = io.Copy(fdst, fsrc)
-	if err != nil {
-		zw.Close()
-		log.Fatal(err)
-		return err
+	var autoThreads int = 1
+
+	if numCPU > 1 && numCPU <= 4 {
+		autoThreads = 2
 	}
 
-	zw.Close()
-	fhdst.Close()
-	fhsrc.Close()
-
-	err = os.Rename(dstTemp, dst)
-	if err != nil {
-		log.Fatal(err)
-		return err
+	if numCPU > 4 && numCPU <= 8 {
+		autoThreads = 4
 	}
-	return nil
+
+	if numCPU > 8 {
+		autoThreads = numCPU - 4
+	}
+
+	return autoThreads
+}
+
+func GetCompressLevel() int {
+	var cLevel int = 6
+	switch Level {
+	case 0:
+		cLevel = gzip.NoCompression
+	case 1:
+		cLevel = gzip.BestSpeed
+	case 6:
+		cLevel = gzip.DefaultCompression
+	case 9:
+		cLevel = gzip.BestCompression
+	default:
+		cLevel = gzip.DefaultCompression
+	}
+
+	return cLevel
 }

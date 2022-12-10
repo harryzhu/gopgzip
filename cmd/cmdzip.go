@@ -38,7 +38,7 @@ var zipCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "zip is running ...")
 
-		CompressZip(Input, Output)
+		CompressWithGZip(Input, Output)
 	},
 }
 

@@ -39,6 +39,7 @@ var zipCmd = &cobra.Command{
 		Colorintln("green", "zip is running ...")
 
 		CompressWithGZip(Input, Output)
+
 	},
 }
 

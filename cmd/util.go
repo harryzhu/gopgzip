@@ -21,7 +21,8 @@ import (
 	//"sync"
 	//"time"
 
-	//"github.com/klauspost/compress/zstd"
+	"github.com/harryzhu/pbar"
+	"github.com/klauspost/compress/zstd"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/mholt/archiver/v4"
 	progressbar "github.com/schollz/progressbar/v3"
@@ -33,7 +34,7 @@ import (
 func CompressWithGZip(src, dst string) {
 
 	selectThreads := GetNumThreads()
-	cLevel := GetCompressLevel()
+	cLevel := GetGZipLevel()
 
 	fsrc, fsrcInfo, fsrcHandler := NewBufReader(src)
 
@@ -440,7 +441,7 @@ func GetNumThreads() int {
 	return autoThreads
 }
 
-func GetCompressLevel() int {
+func GetGZipLevel() int {
 	var cLevel int = 6
 	switch Level {
 	case 0:
@@ -456,4 +457,102 @@ func GetCompressLevel() int {
 	}
 
 	return cLevel
+}
+
+func GetZstdLevel() zstd.EncoderLevel {
+	cLevel := zstd.SpeedDefault
+	switch Level {
+	case 0:
+		cLevel = zstd.SpeedFastest
+	case 1:
+		cLevel = zstd.SpeedDefault
+	case 6:
+		cLevel = zstd.SpeedBetterCompression
+	case 9:
+		cLevel = zstd.SpeedBestCompression
+	default:
+		cLevel = zstd.SpeedDefault
+	}
+
+	return cLevel
+}
+
+func CompressWithZstd(src, dst string) error {
+	dstTemp := strings.Join([]string{dst, "ing"}, "")
+	fdst, err := os.Create(dstTemp)
+	if err != nil {
+		return err
+	}
+
+	fsrc, err := os.Open(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, fsrcInfo, _ := NewBufReader(src)
+
+	bar := pbar.NewBar64(fsrcInfo.Size())
+
+	cLevel := GetZstdLevel()
+	//enc, err := zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel), zstd.WithEncoderConcurrency(GetNumThreads()))
+	enc, err := zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel))
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = io.Copy(io.MultiWriter(enc, bar), fsrc)
+	//_, err = io.Copy(enc, fsrc)
+	if err != nil {
+		enc.Close()
+		log.Fatal(err)
+	}
+	enc.Close()
+
+	fsrc.Close()
+	fdst.Close()
+
+	err = os.Rename(dstTemp, dst)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
+func DecompressWithZstd(src, dst string) error {
+	dstTemp := strings.Join([]string{dst, "ing"}, "")
+
+	fdst, err := os.Create(dstTemp)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fsrc, err := os.Open(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//dec, err := zstd.NewReader(fsrc, zstd.WithDecoderConcurrency(GetNumThreads()))
+	dec, err := zstd.NewReader(fsrc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer dec.Close()
+
+	_, err = io.Copy(fdst, dec)
+	if err != nil && err != io.EOF {
+
+		log.Println("error: io.copy")
+		log.Fatal(err)
+	}
+
+	fsrc.Close()
+
+	fdst.Close()
+
+	err = os.Rename(dstTemp, dst)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
 }

@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/harryzhu/pbar v0.0.0-20221211150739-1b01b7cd17f8 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/klauspost/compress v1.15.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
@@ -26,4 +27,8 @@ require (
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
+)
+
+replace (
+	github.com/harryzhu/pbar v0.0.0-20221211150739-1b01b7cd17f8 => ../pbar
 )

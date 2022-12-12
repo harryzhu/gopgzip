@@ -226,7 +226,7 @@ func Colorint(c string, s string) error {
 	return nil
 }
 
-func setFilesMap(src string) error {
+func setFilesMap(src string) (int64, error) {
 	srcInfo, err := os.Stat(src)
 	if err != nil {
 		log.Fatal(err)
@@ -238,17 +238,18 @@ func setFilesMap(src string) error {
 	src = strings.ReplaceAll(src, "\\", "/")
 	src = strings.TrimRight(src, "/")
 	filesMap = make(map[string]string, 100)
-
+	var fileSize int64 = 0
 	var walkFunc = func(path string, info os.FileInfo, err error) error {
 		path = strings.ReplaceAll(path, "\\", "/")
 		if !info.IsDir() {
 			filesMap[path] = strings.Trim(strings.Replace(path, src[:strings.LastIndex(src, "/")], "", 1), "/")
+			fileSize += info.Size()
 		}
 
 		return nil
 	}
 	err = filepath.Walk(src, walkFunc)
-	return err
+	return fileSize, err
 }
 
 func TarballDir(src string, dst string) error {
@@ -270,39 +271,21 @@ func TarballDir(src string, dst string) error {
 		Compression: nil,
 		Archival:    archiver.Tar{},
 	}
-	if fileCompression == 1 {
-		format = archiver.CompressedArchive{
-			Compression: archiver.Gz{},
-			Archival:    archiver.Tar{},
-		}
-	}
-
-	if fileCompression == 2 {
-		format = archiver.CompressedArchive{
-			Compression: archiver.Zstd{},
-			Archival:    archiver.Tar{},
-		}
-	}
 
 	if isDebug {
-		bar := progressbar.DefaultBytes(-1)
+		bar := pbar.NewBar64(0)
 		err = format.Archive(context.Background(), io.MultiWriter(bufdst, bar), files)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		bufdst.Flush()
-		fhdst.Close()
 		bar.Finish()
 	} else {
 		err = format.Archive(context.Background(), bufdst, files)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		bufdst.Flush()
-		fhdst.Close()
 	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bufdst.Flush()
+	fhdst.Close()
 
 	err = os.Rename(dstTemp, dst)
 	if err != nil {
@@ -322,20 +305,6 @@ func Untarball(src string, dst string) error {
 	format := archiver.CompressedArchive{
 		Compression: nil,
 		Archival:    archiver.Tar{},
-	}
-
-	if fileCompression == 1 {
-		format = archiver.CompressedArchive{
-			Compression: archiver.Gz{},
-			Archival:    archiver.Tar{},
-		}
-	}
-
-	if fileCompression == 2 {
-		format = archiver.CompressedArchive{
-			Compression: archiver.Zstd{},
-			Archival:    archiver.Tar{},
-		}
 	}
 
 	handler := func(ctx context.Context, f archiver.File) error {
@@ -484,14 +453,12 @@ func CompressWithZstd(src, dst string) error {
 		return err
 	}
 
-	fsrc, err := os.Open(src)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// fsrc, err := os.Open(src)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	_, fsrcInfo, _ := NewBufReader(src)
-
-	bar := pbar.NewBar64(fsrcInfo.Size())
+	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
 
 	cLevel := GetZstdLevel()
 	//enc, err := zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel), zstd.WithEncoderConcurrency(GetNumThreads()))
@@ -499,15 +466,21 @@ func CompressWithZstd(src, dst string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = io.Copy(io.MultiWriter(enc, bar), fsrc)
-	//_, err = io.Copy(enc, fsrc)
+	if isDebug {
+		bar := pbar.NewBar64(fsrcInfo.Size())
+		_, err = io.Copy(io.MultiWriter(enc, bar), fsrc)
+		bar.Finish()
+	} else {
+		_, err = io.Copy(enc, fsrc)
+	}
+
 	if err != nil {
 		enc.Close()
 		log.Fatal(err)
 	}
 	enc.Close()
 
-	fsrc.Close()
+	fhsrc.Close()
 	fdst.Close()
 
 	err = os.Rename(dstTemp, dst)

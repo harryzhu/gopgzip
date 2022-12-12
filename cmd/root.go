@@ -12,6 +12,7 @@ import (
 
 	"time"
 
+	//"github.com/harryzhu/pbar"
 	"github.com/spf13/cobra"
 )
 
@@ -43,6 +44,7 @@ var rootCmd = &cobra.Command{
 		if Output != "" {
 			MakeDirs(filepath.Dir(Output))
 		}
+
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		tStop = time.Now()

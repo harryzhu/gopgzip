@@ -1,2 +1,2 @@
 #! /bin/bash
-go build -ldflags "-w" -o gopzip main.go
+go build -ldflags "-w" -o gopgzip main.go

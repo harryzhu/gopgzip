@@ -25,7 +25,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/mholt/archiver/v4"
-	progressbar "github.com/schollz/progressbar/v3"
 
 	//"github.com/valyala/gozstd"
 	"github.com/zeebo/blake3"
@@ -55,7 +54,7 @@ func CompressWithGZip(src, dst string) {
 	log.Printf("threads: %v, block-size: %v MB", selectThreads, BlockSizeMB)
 
 	if isDebug {
-		bar := progressbar.DefaultBytes(fsrcInfo.Size())
+		bar := pbar.NewBar64(fsrcInfo.Size())
 		_, err = io.Copy(io.MultiWriter(w, bar), fsrc)
 		bar.Finish()
 	} else {
@@ -100,7 +99,7 @@ func DecompressWithGZip(src string, dst string) error {
 	}
 
 	if isDebug {
-		bar := progressbar.DefaultBytes(fsrcInfo.Size(), "unzipping ...")
+		bar := pbar.NewBar64(fsrcInfo.Size())
 		_, err = reader.WriteTo(io.MultiWriter(fdst, bar))
 		bar.Finish()
 	} else {
@@ -453,11 +452,6 @@ func CompressWithZstd(src, dst string) error {
 		return err
 	}
 
-	// fsrc, err := os.Open(src)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
 
 	cLevel := GetZstdLevel()
@@ -511,7 +505,14 @@ func DecompressWithZstd(src, dst string) error {
 	}
 	defer dec.Close()
 
-	_, err = io.Copy(fdst, dec)
+	if isDebug {
+		bar := pbar.NewBar64(0)
+		_, err = io.Copy(io.MultiWriter(fdst, bar), dec)
+		bar.Finish()
+	} else {
+		_, err = io.Copy(fdst, dec)
+	}
+
 	if err != nil && err != io.EOF {
 
 		log.Println("error: io.copy")

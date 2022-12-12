@@ -12,7 +12,6 @@ import (
 
 	"time"
 
-	//"github.com/harryzhu/pbar"
 	"github.com/spf13/cobra"
 )
 

@@ -13,7 +13,7 @@ import (
 // zstdCmd represents the zstd command
 var zstdCmd = &cobra.Command{
 	Use:   "zstd",
-	Short: "A brief description of your command",
+	Short: "zstd --input=your-local-file.txt --output=your-backup.zst [--level=0|1|6|9]",
 	Long:  `-`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {

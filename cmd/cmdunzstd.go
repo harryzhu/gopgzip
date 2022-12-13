@@ -17,7 +17,7 @@ import (
 // unzstdCmd represents the unzstd command
 var unzstdCmd = &cobra.Command{
 	Use:   "unzstd",
-	Short: "A brief description of your command",
+	Short: "unzstd --input=your-backup.zst --output=your-local-file.txt",
 	Long:  `-`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {
@@ -45,14 +45,4 @@ var unzstdCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(unzstdCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// unzstdCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// unzstdCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

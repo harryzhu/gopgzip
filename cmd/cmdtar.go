@@ -5,7 +5,9 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"path/filepath"
 	"strings"
+
 	//"os"
 	//"fmt"
 	"log"
@@ -25,17 +27,21 @@ var tarCmd = &cobra.Command{
 	Long:  `--input= is a folder, --output= is a file`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {
-			log.Fatal("--input= cannot be empty")
+			log.Fatal("--input= cannot be empty and must be a folder")
 		}
 
+		Input = strings.TrimRight(Input, "/")
+		Input = strings.TrimRight(Input, "\\")
+
 		if Output == "" {
-			Output = strings.Join([]string{Input, "tar"}, ".")
+			Output = strings.Join([]string{filepath.Base(Input), "tar"}, ".")
+			Output = filepath.Join(filepath.Dir(Input), Output)
 		}
 
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "tar is running ...")
-		TarballDir(Input, Output)
+		TarDir(Input, Output)
 
 	},
 }

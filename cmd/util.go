@@ -251,7 +251,7 @@ func setFilesMap(src string) (int64, error) {
 	return fileSize, err
 }
 
-func TarballDir(src string, dst string) error {
+func TarDir(src string, dst string) error {
 	setFilesMap(src)
 	files, err := archiver.FilesFromDisk(nil, filesMap)
 	if err != nil {
@@ -297,7 +297,7 @@ func TarballDir(src string, dst string) error {
 	return nil
 }
 
-func Untarball(src string, dst string) error {
+func UntarDir(src string, dst string) error {
 	fsrc, _, fhsrc := NewBufReader(src)
 	wg := sync.WaitGroup{}
 
@@ -455,8 +455,13 @@ func CompressWithZstd(src, dst string) error {
 	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
 
 	cLevel := GetZstdLevel()
-	//enc, err := zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel), zstd.WithEncoderConcurrency(GetNumThreads()))
+
 	enc, err := zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel))
+	if Threads > 0 {
+		numThreads := GetNumThreads()
+		log.Println("threads:", numThreads)
+		enc, err = zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel), zstd.WithEncoderConcurrency(numThreads))
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -498,7 +503,7 @@ func DecompressWithZstd(src, dst string) error {
 		log.Fatal(err)
 	}
 
-	//dec, err := zstd.NewReader(fsrc, zstd.WithDecoderConcurrency(GetNumThreads()))
+	//dec, err = zstd.NewReader(fsrc, zstd.WithDecoderConcurrency(numThreads))
 	dec, err := zstd.NewReader(fsrc)
 	if err != nil {
 		log.Fatal(err)

@@ -48,6 +48,22 @@ var rootCmd = &cobra.Command{
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		tStop = time.Now()
 		log.Printf("duration: %v sec", tStop.Sub(tStart))
+
+		if isDebug {
+			fi, err := os.Stat(Input)
+			if err == nil && fi.IsDir() == false {
+				log.Println("-------------")
+				log.Println("input file:", Input)
+				log.Println("input b3sum:", Blake3SumFile(Input))
+			}
+
+			fo, err := os.Stat(Output)
+			if err == nil && fo.IsDir() == false {
+				log.Println("-------------")
+				log.Println("output file:", Output)
+				log.Println("output b3sum:", Blake3SumFile(Output))
+			}
+		}
 	},
 }
 

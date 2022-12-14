@@ -324,9 +324,12 @@ func UntarDir(src string, dst string) error {
 		dstDir := filepath.ToSlash(filepath.Dir(dstName))
 		if f.IsDir() {
 			dstDir = filepath.ToSlash(dstName)
-			return nil
 		}
 		MakeDirs(dstDir)
+
+		if f.IsDir() {
+			return nil
+		}
 
 		//fmt.Println(dstName)
 		if srcStat.Size() > 32<<20 {

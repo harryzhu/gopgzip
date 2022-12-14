@@ -36,6 +36,9 @@ var rootCmd = &cobra.Command{
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		tStart = time.Now()
+		Input = filepath.ToSlash(Input)
+		Output = filepath.ToSlash(Output)
+
 		if bufferMB < 0 || bufferMB > 2048 {
 			bufferMB = 64
 		}
@@ -50,17 +53,17 @@ var rootCmd = &cobra.Command{
 		log.Printf("duration: %v sec", tStop.Sub(tStart))
 
 		if isDebug {
+			log.Println("-------------")
+			log.Println("input:", Input)
 			fi, err := os.Stat(Input)
 			if err == nil && fi.IsDir() == false {
-				log.Println("-------------")
-				log.Println("input file:", Input)
 				log.Println("input b3sum:", Blake3SumFile(Input))
 			}
 
+			log.Println("-------------")
+			log.Println("output:", Output)
 			fo, err := os.Stat(Output)
 			if err == nil && fo.IsDir() == false {
-				log.Println("-------------")
-				log.Println("output file:", Output)
 				log.Println("output b3sum:", Blake3SumFile(Output))
 			}
 		}

@@ -374,6 +374,11 @@ func MakeDirs(s string) error {
 }
 
 func PathNormalize(s string) string {
+	var err error
+	s, err = filepath.Abs(s)
+	if err != nil {
+		log.Fatal(err)
+	}
 	s = filepath.ToSlash(s)
 	s = strings.TrimRight(s, "/")
 	return s

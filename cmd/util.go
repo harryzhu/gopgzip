@@ -320,7 +320,13 @@ func UntarDir(src string, dst string) error {
 		}
 		srcData, err := io.ReadAll(rc)
 		dstName := filepath.Join(dst, f.NameInArchive)
-		MakeDirs(filepath.Dir(dstName))
+		dstName = filepath.ToSlash(dstName)
+		dstDir := filepath.ToSlash(filepath.Dir(dstName))
+		if f.IsDir() {
+			dstDir = filepath.ToSlash(dstName)
+			MakeDirs(dstDir)
+			return nil
+		}
 
 		//fmt.Println(dstName)
 		if srcStat.Size() > 32<<20 {

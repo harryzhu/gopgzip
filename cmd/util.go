@@ -47,11 +47,11 @@ func CompressWithGZip(src, dst string) {
 	}
 	defer w.Close()
 
-	var BlockSizeByte int = BlockSizeMB << 20
+	var BufferMBByte int = BufferMB << 20
 
-	w.SetConcurrency(BlockSizeByte, selectThreads)
+	w.SetConcurrency(BufferMBByte, selectThreads)
 
-	log.Printf("threads: %v, block-size: %v MB", selectThreads, BlockSizeMB)
+	log.Printf("threads: %v, buffer-size: %v MB", selectThreads, BufferMB)
 
 	if isDebug {
 		bar := pbar.NewBar64(fsrcInfo.Size())
@@ -124,7 +124,7 @@ func MD5File(src string) string {
 	reader, _, fhsrc := NewBufReader(src)
 	hash := md5.New()
 
-	var buf []byte = make([]byte, bufferMB)
+	var buf []byte = make([]byte, BufferMB)
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -145,7 +145,7 @@ func SHA256File(src string) string {
 	reader, _, fhsrc := NewBufReader(src)
 	hash := sha256.New()
 
-	var buf []byte = make([]byte, bufferMB)
+	var buf []byte = make([]byte, BufferMB)
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -174,7 +174,7 @@ func Blake3SumFile(src string) string {
 	hash := blake3.New()
 	reader, _, fhsrc := NewBufReader(src)
 
-	var buf []byte = make([]byte, bufferMB)
+	var buf []byte = make([]byte, BufferMB)
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -370,13 +370,19 @@ func MakeDirs(s string) error {
 	return nil
 }
 
+func PathNormalize(s string) string {
+	s = filepath.ToSlash(s)
+	s = strings.TrimRight(s, "/")
+	return s
+}
+
 func NewBufWriter(f string) (*bufio.Writer, *os.File) {
 	fh, err := os.Create(f)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return bufio.NewWriterSize(bufio.NewWriter(fh), bufferMB), fh
+	return bufio.NewWriterSize(bufio.NewWriter(fh), BufferMB), fh
 }
 
 func NewBufReader(f string) (*bufio.Reader, fs.FileInfo, *os.File) {
@@ -390,7 +396,7 @@ func NewBufReader(f string) (*bufio.Reader, fs.FileInfo, *os.File) {
 		log.Fatal(err)
 	}
 
-	return bufio.NewReaderSize(bufio.NewReader(fh), bufferMB), finfo, fh
+	return bufio.NewReaderSize(bufio.NewReader(fh), BufferMB), finfo, fh
 }
 
 func GetNumThreads() int {

@@ -11,9 +11,8 @@ import (
 )
 
 var (
-	BlockSizeMB int
-	Level       int
-	Threads     int
+	Level   int
+	Threads int
 )
 
 // zipCmd represents the zip command
@@ -30,10 +29,6 @@ var zipCmd = &cobra.Command{
 			Output = Input + ".gz"
 		}
 
-		if BlockSizeMB < 0 || BlockSizeMB > 512 {
-			BlockSizeMB = 16
-		}
-
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "zip is running ...")
@@ -45,7 +40,6 @@ var zipCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(zipCmd)
-	zipCmd.Flags().IntVar(&BlockSizeMB, "block-size-mb", 16, "block size megabytes")
 	zipCmd.Flags().IntVar(&Level, "level", 6, "level should be 0,1,6,9; default 6")
 	zipCmd.Flags().IntVar(&Threads, "threads", 0, "threads for zip; default 0: auto-detect")
 

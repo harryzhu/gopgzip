@@ -24,10 +24,6 @@ var zstdCmd = &cobra.Command{
 			Output = Input + ".zst"
 		}
 
-		if BlockSizeMB < 0 || BlockSizeMB > 512 {
-			BlockSizeMB = 16
-		}
-
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "zstd is running ...")

@@ -1,1 +1,1 @@
-go build -o gopgzip.exe .\main.go
+go build -ldflags "-w -s" -o gopgzip.exe .\main.go

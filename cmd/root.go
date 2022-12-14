@@ -18,7 +18,7 @@ import (
 var (
 	Input    string
 	Output   string
-	bufferMB int
+	BufferMB int
 	tStart   time.Time
 	tStop    time.Time
 	isDebug  bool
@@ -36,11 +36,11 @@ var rootCmd = &cobra.Command{
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		tStart = time.Now()
-		Input = filepath.ToSlash(Input)
-		Output = filepath.ToSlash(Output)
+		Input = PathNormalize(Input)
+		Output = PathNormalize(Output)
 
-		if bufferMB < 0 || bufferMB > 2048 {
-			bufferMB = 64
+		if BufferMB < 0 || BufferMB > 2048 {
+			BufferMB = 64
 		}
 
 		if Output != "" {
@@ -87,7 +87,7 @@ func init() {
 	//
 	rootCmd.PersistentFlags().StringVar(&Input, "input", "", "source file or folder(only [tar] need a folder here)")
 	rootCmd.PersistentFlags().StringVar(&Output, "output", "", "target file or folder(only [untar] need a folder here)")
-	rootCmd.PersistentFlags().IntVar(&bufferMB, "buffer-mb", 64, "1~2048,must < memory-available-mb|SSD: greater is better, HDD: lower is better")
+	rootCmd.PersistentFlags().IntVar(&BufferMB, "buffer-mb", 64, "1~2048;SSD: greater is better, HDD: lower is better")
 	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "will show more info if true")
 
 }

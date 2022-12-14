@@ -42,7 +42,7 @@ var tarCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "tar is running ...")
 		TarDir(Input, Output)
-
+		//TarDir2(Input, Output)
 	},
 }
 

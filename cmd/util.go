@@ -239,7 +239,9 @@ func setFilesMap(src string) (int64, error) {
 	filesMap = make(map[string]string, 100)
 	var fileSize int64 = 0
 	var walkFunc = func(path string, info os.FileInfo, err error) error {
-		path = strings.ReplaceAll(path, "\\", "/")
+		path, _ = filepath.Abs(path)
+		path = filepath.ToSlash(path)
+
 		if !info.IsDir() {
 			filesMap[path] = strings.Trim(strings.Replace(path, src[:strings.LastIndex(src, "/")], "", 1), "/")
 			fileSize += info.Size()

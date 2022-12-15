@@ -305,6 +305,13 @@ func setFilesMap(src string) (int64, error) {
 			log.Println("EXCLUDE:", nameInTar)
 			return nil
 		}
+
+		if !info.Mode().IsRegular() {
+			// nothing more to do for non-regular
+			// writing data: archive/tar: write too long
+			return nil
+		}
+
 		if !info.IsDir() {
 			filesMap[path] = nameInTar
 			fileSize += info.Size()

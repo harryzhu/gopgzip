@@ -23,6 +23,8 @@ func TarDir2(src string, dst string) error {
 	tw := tar.NewWriter(bufdst)
 	bar := pbar.NewBar64(0)
 
+	var bufSize int64 = 0
+	var bufByte int64 = int64(BufferMB << 20)
 	var fsrc io.Reader
 	var fsrcInfo fs.FileInfo
 	var fhsrc *os.File
@@ -55,6 +57,15 @@ func TarDir2(src string, dst string) error {
 		}
 
 		fhsrc.Close()
+
+		bufSize += fsrcInfo.Size()
+		if bufByte-bufSize < 1024 {
+			if isDebug {
+				log.Println("Flush: ", bufSize)
+			}
+			bufdst.Flush()
+			bufSize = 0
+		}
 	}
 
 	tw.Close()

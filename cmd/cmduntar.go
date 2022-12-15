@@ -16,7 +16,7 @@ import (
 var untarCmd = &cobra.Command{
 	Use:   "untar",
 	Short: "untar --input=your-file.tar --output=/the/folder/where/you/want/to/extract_dir",
-	Long:  `--input= is a file, --output= is a folder`,
+	Long:  `--input= is a .tar file, --output= is a folder`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" || Output == "" {
 			log.Fatal("--input= and --output= cannot be empty")

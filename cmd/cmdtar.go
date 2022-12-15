@@ -24,7 +24,7 @@ var (
 var tarCmd = &cobra.Command{
 	Use:   "tar",
 	Short: "tar --input=/the/folder/you/want/to/tar --output=/the/file/where/you/want/to/save.tar",
-	Long:  `--input= is a folder, --output= is a file`,
+	Long:  `--input= is a folder, --output= is a .tar file`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if Input == "" {
 			log.Fatal("--input= cannot be empty and must be a folder")
@@ -42,7 +42,6 @@ var tarCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "tar is running ...")
 		TarDir(Input, Output)
-		//TarDir2(Input, Output)
 	},
 }
 

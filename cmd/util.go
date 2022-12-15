@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
 	"runtime"
 
 	"strings"
@@ -225,7 +226,62 @@ func Colorint(c string, s string) error {
 	return nil
 }
 
+func LoadExcludes() error {
+	if Excludes == "" {
+		return nil
+	}
+
+	Excludes, _ = filepath.Abs(Excludes)
+	f, err := os.Open(Excludes)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Println("excludes file was loaded:", Excludes)
+	}
+
+	c, _ := ioutil.ReadAll(f)
+	content := string(c)
+	content = strings.ReplaceAll(content, "\\r\\n", "\\n")
+	lines := strings.Split(content, "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		ExcludeFiles = append(ExcludeFiles, line)
+	}
+
+	return nil
+}
+
+func IsExcluded(s string) bool {
+	if len(ExcludeFiles) == 0 {
+		return false
+	}
+
+	s = strings.TrimSpace(s)
+
+	if s == "" {
+		return false
+	}
+
+	s = filepath.ToSlash(s)
+	for _, line := range ExcludeFiles {
+		line = filepath.ToSlash(line)
+
+		if line == s {
+			return true
+		}
+
+	}
+
+	return false
+}
+
 func setFilesMap(src string) (int64, error) {
+	LoadExcludes()
+
 	srcInfo, err := os.Stat(src)
 	if err != nil {
 		log.Fatal(err)
@@ -242,8 +298,15 @@ func setFilesMap(src string) (int64, error) {
 		path, _ = filepath.Abs(path)
 		path = filepath.ToSlash(path)
 
+		nameInTar := strings.Trim(strings.Replace(path, src[:strings.LastIndex(src, "/")], "", 1), "/")
+
+		bExc := IsExcluded(nameInTar)
+		if bExc == true {
+			log.Println("EXCLUDE:", nameInTar)
+			return nil
+		}
 		if !info.IsDir() {
-			filesMap[path] = strings.Trim(strings.Replace(path, src[:strings.LastIndex(src, "/")], "", 1), "/")
+			filesMap[path] = nameInTar
 			fileSize += info.Size()
 		}
 

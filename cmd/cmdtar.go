@@ -47,6 +47,8 @@ var tarCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(tarCmd)
+	tarCmd.Flags().StringVar(&Excludes, "excludes", "", "a file to define excluding pattern, line by line")
+
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")
 }

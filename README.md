@@ -64,7 +64,12 @@
 ./gopgzip sha256 --input=/home/harryzhu/test/abc.tar.gz [--output=/the/path/of/the/abc.tar.md5]
 ```
 
-## b3sum a file: for a very large file
+## xxhash sum a file: for a big file
+```
+./gopgzip xxhash --input=/home/harryzhu/test/abc.tar.gz [--output=/the/path/of/the/abc.tar.xxhash]
+```
+
+## b3sum a file: for a very big file
 ```
 ./gopgzip b3sum --input=/home/harryzhu/test/abc.tar.gz [--output=/the/path/of/the/abc.tar.b3sum]
 ```

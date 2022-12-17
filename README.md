@@ -3,7 +3,7 @@
 ## build
 `./build.sh`
 
-## zip a file PARALLELLY
+## zip a file Parallely
 ```
 ./gopgzip zip --input=/home/harryzhu/test/abc.tar --output=/the/path/of/the/abc.tar.gz --thread=6 --level=9
 ```
@@ -20,6 +20,16 @@
 ## unzip a file
 ```
 ./gopgzip unzip --input=/home/harryzhu/test/abc.tar.gz --output=/the/path/of/the/abc.tar
+```
+
+## zstd a file
+```
+./gopgzip zstd --input=/home/harryzhu/test/abc.tar --output=/the/path/of/the/abc.zst --level=0|1|6|9
+```
+
+## unzstd a file
+```
+./gopgzip unzstd --input=/home/harryzhu/test/abc.zst --output=/the/path/of/the/abc.tar
 ```
 
 ## tar a folder recursively

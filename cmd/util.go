@@ -49,7 +49,7 @@ func CompressWithGZip(src, dst string) {
 	defer w.Close()
 
 	var BufferMBByte int = BufferMB << 20
-
+	w.Name = fsrcInfo.Name()
 	w.SetConcurrency(BufferMBByte, selectThreads)
 
 	log.Printf("threads: %v, buffer-size: %v MB", selectThreads, BufferMB)
@@ -625,5 +625,13 @@ func DecompressWithZstd(src, dst string) error {
 		log.Fatal(err)
 	}
 
+	return nil
+}
+
+func RatioInputOutput(src string, dst string) error {
+	_, fsrcInfo, _ := NewBufReader(src)
+	_, fdstInfo, _ := NewBufReader(dst)
+	r := float64(fdstInfo.Size()) / float64(fsrcInfo.Size())
+	log.Println("compress ratio:", r)
 	return nil
 }

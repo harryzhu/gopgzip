@@ -29,6 +29,8 @@ var zstdCmd = &cobra.Command{
 		Colorintln("green", "zstd is running ...")
 
 		CompressWithZstd(Input, Output)
+
+		RatioInputOutput(Input, Output)
 	},
 }
 

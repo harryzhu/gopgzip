@@ -27,8 +27,8 @@ import (
 	gzip "github.com/klauspost/pgzip"
 	"github.com/mholt/archiver/v4"
 
-	//"github.com/valyala/gozstd"
 	"github.com/zeebo/blake3"
+	"github.com/zeebo/xxh3"
 )
 
 func CompressWithGZip(src, dst string) {
@@ -125,7 +125,7 @@ func MD5File(src string) string {
 	reader, _, fhsrc := NewBufReader(src)
 	hash := md5.New()
 
-	var buf []byte = make([]byte, BufferMB)
+	var buf []byte = make([]byte, 8192)
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -146,7 +146,7 @@ func SHA256File(src string) string {
 	reader, _, fhsrc := NewBufReader(src)
 	hash := sha256.New()
 
-	var buf []byte = make([]byte, BufferMB)
+	var buf []byte = make([]byte, 8192)
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -175,7 +175,7 @@ func Blake3SumFile(src string) string {
 	hash := blake3.New()
 	reader, _, fhsrc := NewBufReader(src)
 
-	var buf []byte = make([]byte, BufferMB)
+	var buf []byte = make([]byte, 8192)
 	for {
 		n, err := reader.Read(buf)
 		if err != nil {
@@ -446,6 +446,9 @@ func MakeDirs(s string) error {
 }
 
 func PathNormalize(s string) string {
+	if s == "" {
+		return ""
+	}
 	var err error
 	s, err = filepath.Abs(s)
 	if err != nil {
@@ -634,4 +637,24 @@ func RatioInputOutput(src string, dst string) error {
 	r := float64(fdstInfo.Size()) / float64(fsrcInfo.Size())
 	log.Println("compress ratio:", r)
 	return nil
+}
+
+func Xxh3SumFile(src string) string {
+	hash := xxh3.New()
+	reader, _, fhsrc := NewBufReader(src)
+
+	var buf []byte = make([]byte, 8192)
+	for {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatal(err)
+		}
+		hash.Write(buf[:n])
+	}
+
+	fhsrc.Close()
+	return hex.EncodeToString(hash.Sum(nil))
 }

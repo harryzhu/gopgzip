@@ -35,7 +35,6 @@ var rootCmd = &cobra.Command{
 	Long:  `-`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		tStart = time.Now()
 		Input = PathNormalize(Input)
 		Output = PathNormalize(Output)
 
@@ -47,6 +46,7 @@ var rootCmd = &cobra.Command{
 			MakeDirs(filepath.Dir(Output))
 		}
 
+		tStart = time.Now()
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		tStop = time.Now()
@@ -57,14 +57,14 @@ var rootCmd = &cobra.Command{
 			log.Println("input:", Input)
 			fi, err := os.Stat(Input)
 			if err == nil && fi.IsDir() == false {
-				log.Println("input b3sum:", Blake3SumFile(Input))
+				log.Println("input xxhash:", Xxh3SumFile(Input))
 			}
 
 			log.Println("-------------")
 			log.Println("output:", Output)
 			fo, err := os.Stat(Output)
 			if err == nil && fo.IsDir() == false {
-				log.Println("output b3sum:", Blake3SumFile(Output))
+				log.Println("output xxhash:", Xxh3SumFile(Output))
 			}
 		}
 	},

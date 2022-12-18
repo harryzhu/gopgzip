@@ -35,13 +35,12 @@ var tar2Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "tar2 is running ...")
 		TarDir2(Input, Output)
-
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(tar2Cmd)
-	tar2Cmd.Flags().StringVar(&Excludes, "excludes", "", "a file to define excluding pattern, line by line")
+	tar2Cmd.Flags().StringVar(&Excludes, "excludes", "", "a file to define excluded files, line by line")
 
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")

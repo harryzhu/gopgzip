@@ -658,3 +658,9 @@ func Xxh3SumFile(src string) string {
 	fhsrc.Close()
 	return hex.EncodeToString(hash.Sum(nil))
 }
+
+func Xxh3String(src string) string {
+	hash := xxh3.New()
+	hash.Write([]byte(src))
+	return hex.EncodeToString(hash.Sum(nil))
+}

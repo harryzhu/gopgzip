@@ -664,3 +664,65 @@ func Xxh3String(src string) string {
 	hash.Write([]byte(src))
 	return hex.EncodeToString(hash.Sum(nil))
 }
+
+func CopyFile(src string, dst string) error {
+	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
+	defer fhsrc.Close()
+
+	MakeDirs(filepath.Dir(dst))
+
+	fdst, fhdst := NewBufWriter(dst)
+	defer fhdst.Close()
+
+	var err error
+	if isDebug {
+		bar := pbar.NewBar64(fsrcInfo.Size())
+		_, err = io.Copy(io.MultiWriter(fdst, bar), fsrc)
+		bar.Finish()
+	} else {
+		_, err = io.Copy(fdst, fsrc)
+	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
+func CopyDir(src string, dst string) error {
+
+	var copyList map[string]string = make(map[string]string, 100)
+
+	var walkFunc = func(path string, info os.FileInfo, err error) error {
+		fullPath, _ := filepath.Abs(path)
+		fullPath = filepath.ToSlash(path)
+
+		dstPath := strings.ReplaceAll(fullPath, filepath.Dir(src), dst)
+		dstPath = filepath.ToSlash(dstPath)
+
+		if !info.IsDir() {
+			copyList[fullPath] = dstPath
+		}
+
+		return nil
+	}
+	err := filepath.Walk(src, walkFunc)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	wg := sync.WaitGroup{}
+	for fsrc, fdst := range copyList {
+		log.Println(fsrc, fdst)
+		wg.Add(1)
+		go func(fsrc string, fdst string) {
+			CopyFile(fsrc, fdst)
+			wg.Done()
+		}(fsrc, fdst)
+	}
+	wg.Wait()
+
+	return nil
+}

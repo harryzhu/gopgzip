@@ -5,7 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -13,17 +13,30 @@ import (
 // copyCmd represents the copy command
 var copyCmd = &cobra.Command{
 	Use:   "copy",
-	Short: "A brief description of your command",
+	Short: "copy --input=a-folder-or-file  --output=a-folder-or-file",
 	Long:  `-`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("copy called")
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if Input == "" || Output == "" {
+			log.Fatal("--input= and --output= cannot be empty")
+		}
 
-		//CopyFile(Input, Output)
-		CopyDir(Input, Output)
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		Colorintln("green", "copy is running ...")
+
+		_, finputInfo, _ := NewBufReader(Input)
+		if finputInfo.IsDir() == false {
+			CopyFile(Input, Output)
+		} else {
+			CopyDir(Input, Output)
+		}
+
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(copyCmd)
 
+	rootCmd.MarkFlagRequired("input")
+	rootCmd.MarkFlagRequired("output")
 }

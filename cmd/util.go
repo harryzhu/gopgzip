@@ -6,21 +6,21 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
-
+	"regexp"
 	"runtime"
+	"time"
 
 	"strings"
 	"sync"
-
-	//"sync"
-	//"time"
 
 	"github.com/harryzhu/pbar"
 	"github.com/klauspost/compress/zstd"
@@ -449,6 +449,10 @@ func PathNormalize(s string) string {
 	if s == "" {
 		return ""
 	}
+
+	if strings.Contains(s, "://") {
+		return strings.TrimSpace(s)
+	}
 	var err error
 	s, err = filepath.Abs(s)
 	if err != nil {
@@ -456,7 +460,29 @@ func PathNormalize(s string) string {
 	}
 	s = filepath.ToSlash(s)
 	s = strings.TrimRight(s, "/")
+	s = formatString(s)
+	s = Filepathify(s)
 	return s
+}
+
+func Filepathify(fp string) string {
+	var replacement string = "_"
+
+	reControlCharsRegex := regexp.MustCompile("[\u0000-\u001f\u0080-\u009f]")
+
+	reRelativePathRegex := regexp.MustCompile(`^\.+`)
+
+	filenameReservedRegex := regexp.MustCompile(`[<>:"\\|?*\x00-\x1F]`)
+	filenameReservedWindowsNamesRegex := regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9]|lpt[0-9])$`)
+
+	// reserved word
+	fp = filenameReservedRegex.ReplaceAllString(fp, replacement)
+
+	// continue
+	fp = reControlCharsRegex.ReplaceAllString(fp, replacement)
+	fp = reRelativePathRegex.ReplaceAllString(fp, replacement)
+	fp = filenameReservedWindowsNamesRegex.ReplaceAllString(fp, replacement)
+	return fp
 }
 
 func NewBufWriter(f string) (*bufio.Writer, *os.File) {
@@ -693,6 +719,7 @@ func CopyFile(src string, dst string) error {
 func CopyDir(src string, dst string) error {
 
 	var copyList map[string]string = make(map[string]string, 100)
+	var copySum int
 
 	var walkFunc = func(path string, info os.FileInfo, err error) error {
 		fullPath, _ := filepath.Abs(path)
@@ -703,6 +730,7 @@ func CopyDir(src string, dst string) error {
 
 		if !info.IsDir() {
 			copyList[fullPath] = dstPath
+			copySum += 1
 		}
 
 		return nil
@@ -713,15 +741,193 @@ func CopyDir(src string, dst string) error {
 		log.Fatal(err)
 	}
 
+	bar := pbar.NewBar(copySum)
+	bar.WithCounterSkip(32)
+	bar.WithCounterCycle(5)
+
 	wg := sync.WaitGroup{}
+	var countCopy int = 0
+
 	for fsrc, fdst := range copyList {
-		log.Println(fsrc, fdst)
 		wg.Add(1)
+		if isDebug {
+			bar.Add(1)
+		}
 		go func(fsrc string, fdst string) {
 			CopyFile(fsrc, fdst)
+			countCopy = countCopy - 1
 			wg.Done()
 		}(fsrc, fdst)
+		countCopy += 1
+
+		if countCopy >= 10 {
+			wg.Wait()
+		}
+
 	}
+	wg.Wait()
+	bar.Finish()
+
+	return nil
+}
+
+func formatString(dst string) string {
+	if dst == "" {
+		return ""
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "-"
+	} else {
+		hostname = strings.ToLower(hostname)
+	}
+
+	tsNow := time.Now()
+
+	yyyy := tsNow.Format("2006")
+	mm := tsNow.Format("01")
+	dd := tsNow.Format("02")
+	HH := tsNow.Format("15")
+	MM := tsNow.Format("04")
+	SS := tsNow.Format("05")
+
+	DayOfWeek := strings.ToLower(tsNow.Weekday().String())
+
+	dst = strings.ReplaceAll(dst, "{hostname}", hostname)
+	dst = strings.ReplaceAll(dst, "{yyyy}", yyyy)
+	dst = strings.ReplaceAll(dst, "{mm}", mm)
+	dst = strings.ReplaceAll(dst, "{dd}", dd)
+	dst = strings.ReplaceAll(dst, "{HH}", HH)
+	dst = strings.ReplaceAll(dst, "{MM}", MM)
+	dst = strings.ReplaceAll(dst, "{SS}", SS)
+	dst = strings.ReplaceAll(dst, "{day-of-week}", DayOfWeek)
+
+	return dst
+}
+
+func DownloadFile(src string, dst string) error {
+	resp, err := http.Get(src)
+	defer resp.Body.Close()
+
+	if err != nil {
+		log.Println("Error(http.Get):", err)
+		return err
+	}
+
+	if resp.StatusCode > 399 {
+		log.Println(resp.StatusCode, "(ERROR: cannot get url):", src)
+		return errors.New("cannot get the url: " + src)
+	}
+
+	//
+	dst = formatString(dst)
+
+	_, err = os.Stat(dst)
+	if err == nil {
+		if IsOverwrite == false {
+			log.Println("SKIP(as exists):", dst)
+			return nil
+		} else {
+			err = os.Remove(dst)
+			if err != nil {
+				log.Println("Error(os.Remove):", err)
+			}
+		}
+	}
+	if isDebug {
+		log.Println("start downloading:", src, "==>", dst)
+	}
+
+	dstTemp := strings.Join([]string{dst, "downloading"}, ".")
+	MakeDirs(filepath.Dir(dstTemp))
+	fdst, fhdst := NewBufWriter(dstTemp)
+	defer fhdst.Close()
+
+	_, err = io.Copy(fdst, resp.Body)
+	if err != nil {
+		log.Println("Error(io.Copy):", err)
+		return err
+	} else {
+		err = os.Rename(dstTemp, dst)
+		if err != nil {
+			log.Println("Error(os.Remove):", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func DownloadByList(src string, dstDir string) error {
+	bsrc, err := ioutil.ReadFile(src)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	strSrc := string(bsrc)
+	strSrc = strings.ReplaceAll(strSrc, "\r\n", "\n")
+	srcLines := strings.Split(strSrc, "\n")
+
+	var downList []string
+
+	for _, line := range srcLines {
+		line = strings.Trim(line, "\\n")
+		line = strings.TrimSpace(line)
+
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		downList = append(downList, line)
+	}
+
+	wg := sync.WaitGroup{}
+	var downCount int
+
+	for _, line := range downList {
+		dstPath := ""
+		srcUrl := ""
+		if strings.Index(line, "|") == -1 {
+			srcUrl = strings.TrimSpace(line)
+			linePath := line[strings.Index(line, "://")+3:]
+			linePath = strings.Trim(linePath, "/")
+			linePath = Filepathify(linePath)
+			dstPath = filepath.Join(dstDir, linePath)
+			if IsKeepUrlPath == false {
+				dstPath = filepath.Join(dstDir, filepath.Base(linePath))
+			}
+		} else {
+			srcDst := strings.Split(line, "|")
+			if len(srcDst) != 2 {
+				log.Println("invalid line:", line)
+				log.Println("if you are using `|`, please be sure the format is `src_remote_url|local_file_save_path`")
+				continue
+			}
+			srcUrl = strings.TrimSpace(srcDst[0])
+			dstPath = strings.TrimSpace(srcDst[1])
+
+		}
+
+		dstPath = filepath.ToSlash(dstPath)
+
+		wg.Add(1)
+		downCount += 1
+		go func() {
+			DownloadFile(srcUrl, dstPath)
+			downCount -= 1
+			wg.Done()
+		}()
+
+		if downCount >= 10 {
+			wg.Wait()
+		}
+
+	}
+
 	wg.Wait()
 
 	return nil

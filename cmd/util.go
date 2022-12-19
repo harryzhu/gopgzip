@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"time"
 
 	"strings"
 	"sync"
@@ -460,7 +459,7 @@ func PathNormalize(s string) string {
 	}
 	s = filepath.ToSlash(s)
 	s = strings.TrimRight(s, "/")
-	s = formatString(s)
+	s = FormatString(s)
 	s = Filepathify(s)
 	return s
 }
@@ -771,7 +770,7 @@ func CopyDir(src string, dst string) error {
 	return nil
 }
 
-func formatString(dst string) string {
+func FormatString(dst string) string {
 	if dst == "" {
 		return ""
 	}
@@ -783,16 +782,14 @@ func formatString(dst string) string {
 		hostname = strings.ToLower(hostname)
 	}
 
-	tsNow := time.Now()
+	yyyy := tStart.Format("2006")
+	mm := tStart.Format("01")
+	dd := tStart.Format("02")
+	HH := tStart.Format("15")
+	MM := tStart.Format("04")
+	SS := tStart.Format("05")
 
-	yyyy := tsNow.Format("2006")
-	mm := tsNow.Format("01")
-	dd := tsNow.Format("02")
-	HH := tsNow.Format("15")
-	MM := tsNow.Format("04")
-	SS := tsNow.Format("05")
-
-	DayOfWeek := strings.ToLower(tsNow.Weekday().String())
+	DayOfWeek := strings.ToLower(tStart.Weekday().String())
 
 	dst = strings.ReplaceAll(dst, "{hostname}", hostname)
 	dst = strings.ReplaceAll(dst, "{yyyy}", yyyy)
@@ -821,7 +818,7 @@ func DownloadFile(src string, dst string) error {
 	}
 
 	//
-	dst = formatString(dst)
+	dst = PathNormalize(dst)
 
 	_, err = os.Stat(dst)
 	if err == nil {

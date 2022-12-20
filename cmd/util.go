@@ -445,16 +445,17 @@ func MakeDirs(s string) error {
 }
 
 func PathNormalize(s string) string {
+	s = strings.TrimSpace(s)
 	if s == "" {
 		return ""
 	}
 
 	if strings.Contains(s, ":") && strings.Index(s, ":") < 10 {
-		return strings.TrimSpace(s)
+		return s
 	}
 
 	if strings.HasPrefix(s, "\\\\") {
-		return strings.TrimSpace(s)
+		return s
 	}
 
 	var err error

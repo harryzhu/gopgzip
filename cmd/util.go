@@ -468,7 +468,8 @@ func PathNormalize(s string) string {
 
 	s = strings.TrimRight(s, "/")
 	s = FormatString(s)
-	s = Filepathify(s)
+	sBase := Filepathify(filepath.Base(s))
+	s = strings.Join([]string{filepath.Dir(s), sBase}, "/")
 	return s
 }
 

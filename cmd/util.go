@@ -449,16 +449,21 @@ func PathNormalize(s string) string {
 		return ""
 	}
 
-	s = filepath.ToSlash(s)
-	if strings.Contains(s, ":") {
+	if strings.Contains(s, ":") && strings.Index(s, ":") < 10 {
 		return strings.TrimSpace(s)
 	}
+
+	if strings.HasPrefix(s, "\\\\") {
+		return strings.TrimSpace(s)
+	}
+
 	var err error
 	s, err = filepath.Abs(s)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	s = filepath.ToSlash(s)
 	s = strings.TrimRight(s, "/")
 	s = FormatString(s)
 	s = Filepathify(s)

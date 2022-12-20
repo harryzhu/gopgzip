@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"time"
 
@@ -35,6 +36,8 @@ var rootCmd = &cobra.Command{
 	Long:  `-`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		tStart = time.Now()
+
 		Input = PathNormalize(Input)
 		Output = PathNormalize(Output)
 
@@ -42,11 +45,10 @@ var rootCmd = &cobra.Command{
 			BufferMB = 64
 		}
 
-		if Output != "" {
+		if Output != "" && strings.Index(Output, "://") < 0 {
 			MakeDirs(filepath.Dir(Output))
 		}
 
-		tStart = time.Now()
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		tStop = time.Now()

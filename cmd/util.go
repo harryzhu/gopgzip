@@ -841,7 +841,14 @@ func DownloadFile(src string, dst string) error {
 	fdst, fhdst := NewBufWriter(dstTemp)
 	defer fhdst.Close()
 
-	_, err = io.Copy(fdst, resp.Body)
+	if isDebug {
+		bar := pbar.NewBar64(resp.ContentLength)
+		_, err = io.Copy(io.MultiWriter(fdst, bar), resp.Body)
+		bar.Finish()
+	} else {
+		_, err = io.Copy(fdst, resp.Body)
+	}
+
 	if err != nil {
 		log.Println("Error(io.Copy):", err)
 		return err

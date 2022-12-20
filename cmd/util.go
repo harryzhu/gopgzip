@@ -305,12 +305,6 @@ func setFilesMap(src string) (int64, error) {
 			return nil
 		}
 
-		if !info.Mode().IsRegular() {
-			// nothing more to do for non-regular
-			// writing data: archive/tar: write too long
-			return nil
-		}
-
 		if !info.IsDir() {
 			filesMap[path] = nameInTar
 			fileSize += info.Size()
@@ -468,6 +462,9 @@ func PathNormalize(s string) string {
 
 	s = strings.TrimRight(s, "/")
 	s = FormatString(s)
+	if isDebug {
+		log.Println("PathNormalize:", s)
+	}
 	return s
 }
 

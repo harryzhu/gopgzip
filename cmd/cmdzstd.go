@@ -36,6 +36,6 @@ var zstdCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(zstdCmd)
-	zstdCmd.Flags().IntVar(&Level, "level", 1, "level should be 0,1,6,9; default 6")
+	zstdCmd.Flags().IntVar(&Level, "level", 6, "level should be 0,1,6,9; default 6")
 	zstdCmd.Flags().IntVar(&Threads, "threads", 0, "threads for ztsd; default 0")
 }

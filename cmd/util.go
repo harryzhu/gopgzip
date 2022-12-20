@@ -806,12 +806,11 @@ func FormatString(dst string) string {
 
 func DownloadFile(src string, dst string) error {
 	resp, err := http.Get(src)
-	defer resp.Body.Close()
-
 	if err != nil {
 		log.Println("Error(http.Get):", err)
 		return err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode > 399 {
 		log.Println(resp.StatusCode, "(ERROR: cannot get url):", src)

@@ -449,7 +449,8 @@ func PathNormalize(s string) string {
 		return ""
 	}
 
-	if strings.Contains(s, "://") {
+	s = filepath.ToSlash(s)
+	if strings.Contains(s, ":") {
 		return strings.TrimSpace(s)
 	}
 	var err error
@@ -457,7 +458,7 @@ func PathNormalize(s string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	s = filepath.ToSlash(s)
+
 	s = strings.TrimRight(s, "/")
 	s = FormatString(s)
 	s = Filepathify(s)
@@ -845,12 +846,14 @@ func DownloadFile(src string, dst string) error {
 	if err != nil {
 		log.Println("Error(io.Copy):", err)
 		return err
-	} else {
-		err = os.Rename(dstTemp, dst)
-		if err != nil {
-			log.Println("Error(os.Remove):", err)
-			return err
-		}
+	}
+
+	fhdst.Close()
+
+	err = os.Rename(dstTemp, dst)
+	if err != nil {
+		log.Println("Error(os.Remove):", err)
+		return err
 	}
 
 	return nil

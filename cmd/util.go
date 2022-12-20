@@ -458,13 +458,14 @@ func PathNormalize(s string) string {
 		return s
 	}
 
+	s = filepath.ToSlash(s)
 	var err error
+
 	s, err = filepath.Abs(s)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	s = filepath.ToSlash(s)
 	s = strings.TrimRight(s, "/")
 	s = FormatString(s)
 	s = Filepathify(s)

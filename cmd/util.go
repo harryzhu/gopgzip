@@ -468,8 +468,6 @@ func PathNormalize(s string) string {
 
 	s = strings.TrimRight(s, "/")
 	s = FormatString(s)
-	sBase := Filepathify(filepath.Base(s))
-	s = strings.Join([]string{filepath.Dir(s), sBase}, "/")
 	return s
 }
 
@@ -591,6 +589,7 @@ func CompressWithZstd(src, dst string) error {
 		log.Println("threads:", numThreads)
 		enc, err = zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel), zstd.WithEncoderConcurrency(numThreads))
 	}
+
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -574,6 +574,7 @@ func GetZstdLevel() zstd.EncoderLevel {
 
 func CompressWithZstd(src, dst string) error {
 	dstTemp := strings.Join([]string{dst, "ing"}, "")
+
 	fdst, err := os.Create(dstTemp)
 	if err != nil {
 		return err
@@ -593,6 +594,7 @@ func CompressWithZstd(src, dst string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if isDebug {
 		bar := pbar.NewBar64(fsrcInfo.Size())
 		_, err = io.Copy(io.MultiWriter(enc, bar), fsrc)

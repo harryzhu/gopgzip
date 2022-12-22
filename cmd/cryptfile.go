@@ -105,6 +105,7 @@ func AESEncodeFile(src string, dst string) error {
 			log.Fatal(err)
 		}
 	}
+	fdst.Flush()
 	fhdst.Close()
 
 	Colorintln("green", "file: "+dst)
@@ -153,6 +154,7 @@ func AESDecodeFile(src string, dst string) error {
 			log.Fatal(err)
 		}
 	}
+	fdst.Flush()
 	fhdst.Close()
 
 	Colorintln("green", "file: "+dst)

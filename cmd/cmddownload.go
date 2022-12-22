@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	IsOverwrite   bool
 	IsKeepUrlPath bool
 )
 
@@ -40,7 +39,10 @@ var downloadCmd = &cobra.Command{
 		if Input == "" || Output == "" {
 			log.Fatal("--input= and --output= cannot be empty,")
 		}
-
+		if isDebug {
+			bar.WithDisabled(false)
+			bar64.WithDisabled64(false)
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "download is running ...")
@@ -56,7 +58,6 @@ var downloadCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(downloadCmd)
 
-	downloadCmd.Flags().BoolVar(&IsOverwrite, "overwrite", false, "overwrite the existing file")
 	downloadCmd.Flags().BoolVar(&IsKeepUrlPath, "keep-url-path", true, "keep-url-path")
 
 	rootCmd.MarkFlagRequired("input")

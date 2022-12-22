@@ -1,18 +1,28 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 package cmd
 
 import (
-	"os"
-	//"fmt"
 	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 )
 
-// untarCmd represents the untar command
+// untar2Cmd represents the untar command
 var untarCmd = &cobra.Command{
 	Use:   "untar",
 	Short: "untar --input=your-file.tar --output=/the/folder/where/you/want/to/extract_dir",
@@ -34,13 +44,13 @@ var untarCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "untar is running ...")
-		UntarDir(Input, Output)
+		UntarDir2(Input, Output)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(untarCmd)
+
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")
-
 }

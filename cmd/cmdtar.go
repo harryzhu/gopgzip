@@ -1,16 +1,9 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
+	"log"
 	"path/filepath"
 	"strings"
-
-	//"os"
-	//"fmt"
-	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -18,9 +11,11 @@ import (
 var (
 	filesMap        map[string]string
 	fileCompression int
+	Excludes        string
+	ExcludeFiles    []string
 )
 
-// tarCmd represents the tar command
+// tar2Cmd represents the tar command
 var tarCmd = &cobra.Command{
 	Use:   "tar",
 	Short: "tar --input=/the/folder/you/want/to/tar --output=/the/file/where/you/want/to/save.tar",
@@ -41,13 +36,13 @@ var tarCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Colorintln("green", "tar is running ...")
-		TarDir(Input, Output)
+		TarDir2(Input, Output)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(tarCmd)
-	tarCmd.Flags().StringVar(&Excludes, "excludes", "", "a file to define excluding pattern, line by line")
+	tarCmd.Flags().StringVar(&Excludes, "excludes", "", "a file to define excluded files, line by line")
 
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")

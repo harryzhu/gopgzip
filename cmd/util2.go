@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/harryzhu/pbar"
 )
 
 func TarDir2(src string, dst string) error {
@@ -21,7 +19,7 @@ func TarDir2(src string, dst string) error {
 	bufdst, fhdst := NewBufWriter(dstTemp)
 
 	tw := tar.NewWriter(bufdst)
-	bar := pbar.NewBar64(0)
+	bar64.WithMax64(0)
 
 	var bufSize int64 = 0
 	var bufByte int64 = int64(BufferMB << 20)
@@ -40,17 +38,14 @@ func TarDir2(src string, dst string) error {
 		}
 
 		hdr.Name = strings.TrimPrefix(fv, "/")
+		hdr.ModTime = fsrcInfo.ModTime()
 
 		err = tw.WriteHeader(hdr)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if isDebug {
-			_, err = io.Copy(io.MultiWriter(tw, bar), fsrc)
-		} else {
-			_, err = io.Copy(tw, fsrc)
-		}
+		_, err = io.Copy(io.MultiWriter(tw, bar64), fsrc)
 
 		if err != nil {
 			log.Fatal(err)
@@ -60,14 +55,11 @@ func TarDir2(src string, dst string) error {
 
 		bufSize += fsrcInfo.Size()
 		if bufByte-bufSize < 1024 {
-			if isDebug {
-				log.Println("Flush: ", bufSize)
-			}
 			bufdst.Flush()
 			bufSize = 0
 		}
 	}
-
+	tw.Flush()
 	tw.Close()
 	bufdst.Flush()
 	fhdst.Close()
@@ -86,7 +78,7 @@ func UntarDir2(src string, dst string) error {
 	fsrc, _, fhsrc := NewBufReader(src)
 
 	tr := tar.NewReader(fsrc)
-	bar := pbar.NewBar64(0)
+	bar64.WithMax64(0)
 
 	for {
 		hdr, err := tr.Next()
@@ -107,15 +99,13 @@ func UntarDir2(src string, dst string) error {
 		MakeDirs(filepath.Dir(fname))
 
 		fdst, fhdst := NewBufWriter(fname)
-		if isDebug {
-			_, err = io.Copy(io.MultiWriter(fdst, bar), tr)
-		} else {
-			_, err = io.Copy(fdst, tr)
-		}
+
+		_, err = io.Copy(io.MultiWriter(fdst, bar64), tr)
 
 		if err != nil {
 			log.Fatal(err)
 		}
+		fdst.Flush()
 		fhdst.Close()
 		//
 		err = os.Chtimes(fname, hdr.AccessTime, hdr.ModTime)
@@ -134,7 +124,7 @@ func UntarDir2(src string, dst string) error {
 		}
 	}
 
-	bar.Finish()
+	bar64.Finish()
 
 	fhsrc.Close()
 

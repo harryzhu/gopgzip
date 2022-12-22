@@ -11,22 +11,27 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/harryzhu/pbar"
+
 	"time"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	Input    string
-	Output   string
-	BufferMB int
-	tStart   time.Time
-	tStop    time.Time
-	isDebug  bool
+	Input       string
+	Output      string
+	BufferMB    int
+	tStart      time.Time
+	tStop       time.Time
+	IsOverwrite bool
+	isDebug     bool
 )
 
 var (
-	numCPU int
+	NumCPU int
+	bar    *pbar.Bar
+	bar64  *pbar.Bar64
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -36,6 +41,16 @@ var rootCmd = &cobra.Command{
 	Long:  `-`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		NumCPU = runtime.NumCPU()
+		runtime.LockOSThread()
+		runtime.GOMAXPROCS(NumCPU)
+
+		bar = pbar.NewBar(0)
+		bar64 = pbar.NewBar64(0)
+
+		bar.WithDisabled(true)
+		bar64.WithDisabled64(true)
+
 		tStart = time.Now()
 
 		Input = PathNormalize(Input)
@@ -82,13 +97,11 @@ func Execute() {
 }
 
 func init() {
-	numCPU = runtime.NumCPU()
-	runtime.LockOSThread()
-	runtime.GOMAXPROCS(numCPU)
 
 	//
 	rootCmd.PersistentFlags().StringVar(&Input, "input", "", "source file or folder(only [tar] need a folder here)")
 	rootCmd.PersistentFlags().StringVar(&Output, "output", "", "target file or folder(only [untar] need a folder here)")
+	rootCmd.PersistentFlags().BoolVar(&IsOverwrite, "overwrite", false, "if overwrite the existing file")
 	rootCmd.PersistentFlags().IntVar(&BufferMB, "buffer-mb", 64, "1~2048;SSD: greater is better, HDD: lower is better")
 	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "will show more info if true")
 

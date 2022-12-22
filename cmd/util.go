@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
@@ -21,21 +20,18 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/harryzhu/pbar"
 	"github.com/klauspost/compress/zstd"
 	gzip "github.com/klauspost/pgzip"
-	"github.com/mholt/archiver/v4"
 
 	"github.com/zeebo/blake3"
 	"github.com/zeebo/xxh3"
 )
 
 func CompressWithGZip(src, dst string) {
-
 	selectThreads := GetNumThreads()
 	cLevel := GetGZipLevel()
 
-	fsrc, fsrcInfo, fsrcHandler := NewBufReader(src)
+	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
 
 	dstTemp := strings.Join([]string{dst, "ing"}, "")
 
@@ -53,13 +49,10 @@ func CompressWithGZip(src, dst string) {
 
 	log.Printf("threads: %v, buffer-size: %v MB", selectThreads, BufferMB)
 
-	if isDebug {
-		bar := pbar.NewBar64(fsrcInfo.Size())
-		_, err = io.Copy(io.MultiWriter(w, bar), fsrc)
-		bar.Finish()
-	} else {
-		_, err = io.Copy(w, fsrc)
-	}
+	bar64.WithMax64(fsrcInfo.Size())
+	_, err = io.Copy(io.MultiWriter(w, bar64), fsrc)
+	bar64.Finish()
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,7 +60,7 @@ func CompressWithGZip(src, dst string) {
 	w.Close()
 	fdst.Flush()
 	fh.Close()
-	fsrcHandler.Close()
+	fhsrc.Close()
 
 	_, err = os.Stat(dst)
 	if err == nil {
@@ -98,13 +91,10 @@ func DecompressWithGZip(src string, dst string) error {
 		log.Fatal(err)
 	}
 
-	if isDebug {
-		bar := pbar.NewBar64(fsrcInfo.Size())
-		_, err = reader.WriteTo(io.MultiWriter(fdst, bar))
-		bar.Finish()
-	} else {
-		_, err = reader.WriteTo(fdst)
-	}
+	bar64.WithMax64(fsrcInfo.Size())
+	_, err = reader.WriteTo(io.MultiWriter(fdst, bar64))
+	fdst.Flush()
+	bar64.Finish()
 
 	if err != nil {
 		log.Fatal(err)
@@ -121,12 +111,12 @@ func DecompressWithGZip(src string, dst string) error {
 }
 
 func MD5File(src string) string {
-	reader, _, fhsrc := NewBufReader(src)
+	fsrc, _, fhsrc := NewBufReader(src)
 	hash := md5.New()
 
 	var buf []byte = make([]byte, 8192)
 	for {
-		n, err := reader.Read(buf)
+		n, err := fsrc.Read(buf)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -316,115 +306,6 @@ func setFilesMap(src string) (int64, error) {
 	return fileSize, err
 }
 
-func TarDir(src string, dst string) error {
-	setFilesMap(src)
-	files, err := archiver.FilesFromDisk(nil, filesMap)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dstTemp := strings.Join([]string{dst, "ing"}, "")
-
-	bufdst, fhdst := NewBufWriter(dstTemp)
-
-	defer func() {
-		bufdst.Flush()
-	}()
-
-	format := archiver.CompressedArchive{
-		Compression: nil,
-		Archival:    archiver.Tar{},
-	}
-
-	if isDebug {
-		bar := pbar.NewBar64(0)
-		err = format.Archive(context.Background(), io.MultiWriter(bufdst, bar), files)
-		bar.Finish()
-	} else {
-		err = format.Archive(context.Background(), bufdst, files)
-	}
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	bufdst.Flush()
-	fhdst.Close()
-
-	err = os.Rename(dstTemp, dst)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fullpathDst, _ := filepath.Abs(dst)
-	Colorintln("green", "file: "+fullpathDst)
-
-	return nil
-}
-
-func UntarDir(src string, dst string) error {
-	fsrc, _, fhsrc := NewBufReader(src)
-	wg := sync.WaitGroup{}
-
-	format := archiver.CompressedArchive{
-		Compression: nil,
-		Archival:    archiver.Tar{},
-	}
-
-	handler := func(ctx context.Context, f archiver.File) error {
-		rc, err := f.Open()
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-		defer rc.Close()
-
-		srcStat, err := f.Stat()
-		if err != nil {
-			log.Println(err)
-		}
-		srcData, err := io.ReadAll(rc)
-		dstName := filepath.Join(dst, f.NameInArchive)
-		dstName = filepath.ToSlash(dstName)
-		dstDir := filepath.ToSlash(filepath.Dir(dstName))
-		if f.IsDir() {
-			dstDir = filepath.ToSlash(dstName)
-		}
-		MakeDirs(dstDir)
-
-		if f.IsDir() {
-			return nil
-		}
-
-		//fmt.Println(dstName)
-		if srcStat.Size() > 32<<20 {
-			err = ioutil.WriteFile(dstName, srcData, srcStat.Mode())
-			if err != nil {
-				log.Println(err)
-			}
-		} else {
-			wg.Add(1)
-			go func() {
-				err = ioutil.WriteFile(dstName, srcData, srcStat.Mode())
-				if err != nil {
-					log.Println(err)
-				}
-				wg.Done()
-			}()
-		}
-		return err
-	}
-
-	err := format.Extract(context.Background(), fsrc, nil, handler)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fhsrc.Close()
-
-	wg.Wait()
-	return nil
-}
-
 func MakeDirs(s string) error {
 	_, err := os.Stat(s)
 	if err == os.ErrExist {
@@ -491,6 +372,7 @@ func Filepathify(fp string) string {
 func NewBufWriter(f string) (*bufio.Writer, *os.File) {
 	fh, err := os.Create(f)
 	if err != nil {
+		fh.Close()
 		log.Fatal(err)
 	}
 
@@ -505,6 +387,7 @@ func NewBufReader(f string) (*bufio.Reader, fs.FileInfo, *os.File) {
 
 	fh, err := os.Open(f)
 	if err != nil {
+		fh.Close()
 		log.Fatal(err)
 	}
 
@@ -512,22 +395,22 @@ func NewBufReader(f string) (*bufio.Reader, fs.FileInfo, *os.File) {
 }
 
 func GetNumThreads() int {
-	if Threads <= numCPU && Threads > 0 {
+	if Threads <= NumCPU && Threads > 0 {
 		return Threads
 	}
 
 	var autoThreads int = 1
 
-	if numCPU > 1 && numCPU <= 4 {
+	if NumCPU > 1 && NumCPU <= 4 {
 		autoThreads = 2
 	}
 
-	if numCPU > 4 && numCPU <= 8 {
+	if NumCPU > 4 && NumCPU <= 8 {
 		autoThreads = 4
 	}
 
-	if numCPU > 8 {
-		autoThreads = numCPU - 4
+	if NumCPU > 8 {
+		autoThreads = NumCPU - 4
 	}
 
 	return autoThreads
@@ -592,13 +475,9 @@ func CompressWithZstd(src, dst string) error {
 		log.Fatal(err)
 	}
 
-	if isDebug {
-		bar := pbar.NewBar64(fsrcInfo.Size())
-		_, err = io.Copy(io.MultiWriter(enc, bar), fsrc)
-		bar.Finish()
-	} else {
-		_, err = io.Copy(enc, fsrc)
-	}
+	bar64.WithMax64(fsrcInfo.Size())
+	_, err = io.Copy(io.MultiWriter(enc, bar64), fsrc)
+	bar64.Finish()
 
 	if err != nil {
 		enc.Close()
@@ -637,13 +516,9 @@ func DecompressWithZstd(src, dst string) error {
 	}
 	defer dec.Close()
 
-	if isDebug {
-		bar := pbar.NewBar64(0)
-		_, err = io.Copy(io.MultiWriter(fdst, bar), dec)
-		bar.Finish()
-	} else {
-		_, err = io.Copy(fdst, dec)
-	}
+	bar64.WithMax64(0)
+	_, err = io.Copy(io.MultiWriter(fdst, bar64), dec)
+	bar64.Finish()
 
 	if err != nil && err != io.EOF {
 
@@ -673,11 +548,11 @@ func RatioInputOutput(src string, dst string) error {
 
 func Xxh3SumFile(src string) string {
 	hash := xxh3.New()
-	reader, _, fhsrc := NewBufReader(src)
+	fsrc, _, fhsrc := NewBufReader(src)
 
 	var buf []byte = make([]byte, 8192)
 	for {
-		n, err := reader.Read(buf)
+		n, err := fsrc.Read(buf)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -697,81 +572,110 @@ func Xxh3String(src string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+func FileInfo(dst string) (finfo fs.FileInfo, err error) {
+	finfo, err = os.Stat(dst)
+	if err != nil {
+		return nil, err
+	}
+	return finfo, nil
+}
+
 func CopyFile(src string, dst string) error {
-	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
-	defer fhsrc.Close()
+	_, err := FileInfo(dst)
+	if err == nil && IsOverwrite == false {
+		if isDebug {
+			log.Println("file exists and will not overwrite:", dst)
+		}
+		return nil
+	}
+
+	_, err = FileInfo(src)
+	if err != nil {
+		if isDebug {
+			log.Println("file source does not exist:", src)
+		}
+		return err
+	}
 
 	MakeDirs(filepath.Dir(dst))
 
+	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
 	fdst, fhdst := NewBufWriter(dst)
-	defer fhdst.Close()
 
-	var err error
-	if isDebug {
-		bar := pbar.NewBar64(fsrcInfo.Size())
-		_, err = io.Copy(io.MultiWriter(fdst, bar), fsrc)
-		bar.Finish()
-	} else {
-		_, err = io.Copy(fdst, fsrc)
-	}
+	bar64.WithMax64(fsrcInfo.Size())
+	_, err = io.Copy(io.MultiWriter(fdst, bar64), fsrc)
+	fdst.Flush()
+	bar64.Finish()
+
+	fhsrc.Close()
+	fhdst.Close()
 
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return err
 	}
 
 	return nil
 }
 
 func CopyDir(src string, dst string) error {
-
-	var copyList map[string]string = make(map[string]string, 100)
+	var copyList map[string]string = make(map[string]string, 8192)
 	var copySum int
 
+	var dstPath string
+	var fullPath string
+	var err error
+
 	var walkFunc = func(path string, info os.FileInfo, err error) error {
-		fullPath, _ := filepath.Abs(path)
+		if info.IsDir() {
+			return nil
+		}
+
+		fullPath, err = filepath.Abs(path)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
 		fullPath = filepath.ToSlash(path)
 
-		dstPath := strings.ReplaceAll(fullPath, filepath.Dir(src), dst)
+		dstPath = strings.ReplaceAll(fullPath, filepath.Dir(src), dst)
 		dstPath = filepath.ToSlash(dstPath)
+		dstPath = strings.TrimRight(dstPath, "/")
 
-		if !info.IsDir() {
-			copyList[fullPath] = dstPath
-			copySum += 1
+		if IsOverwrite == false {
+			_, err := FileInfo(dstPath)
+			if err == nil {
+				return nil
+			}
 		}
+
+		if fullPath == "" || dstPath == "" {
+			return nil
+		}
+
+		copyList[fullPath] = dstPath
+		copySum += 1
 
 		return nil
 	}
-	err := filepath.Walk(src, walkFunc)
+
+	err = filepath.Walk(src, walkFunc)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("filepath.Walk:", err)
 	}
 
-	bar := pbar.NewBar(copySum)
-	bar.WithCounterSkip(32)
-	bar.WithCounterCycle(5)
+	bar64.WithDisabled64(true)
 
-	wg := sync.WaitGroup{}
-	var countCopy int = 0
+	bar.WithMax(copySum)
+	bar.WithCounterSkip(100)
+	bar.WithCounterCycle(20)
 
 	for fsrc, fdst := range copyList {
-		wg.Add(1)
-		if isDebug {
-			bar.Add(1)
-		}
-		go func(fsrc string, fdst string) {
-			CopyFile(fsrc, fdst)
-			countCopy = countCopy - 1
-			wg.Done()
-		}(fsrc, fdst)
-		countCopy += 1
-
-		if countCopy >= 10 {
-			wg.Wait()
-		}
-
+		bar.Add(1)
+		CopyFile(fsrc, fdst)
 	}
-	wg.Wait()
+
 	bar.Finish()
 
 	return nil
@@ -847,13 +751,10 @@ func DownloadFile(src string, dst string) error {
 	fdst, fhdst := NewBufWriter(dstTemp)
 	defer fhdst.Close()
 
-	if isDebug {
-		bar := pbar.NewBar64(resp.ContentLength)
-		_, err = io.Copy(io.MultiWriter(fdst, bar), resp.Body)
-		bar.Finish()
-	} else {
-		_, err = io.Copy(fdst, resp.Body)
-	}
+	bar64.WithMax64(resp.ContentLength)
+	_, err = io.Copy(io.MultiWriter(fdst, bar64), resp.Body)
+	fdst.Flush()
+	bar64.Finish()
 
 	if err != nil {
 		log.Println("Error(io.Copy):", err)

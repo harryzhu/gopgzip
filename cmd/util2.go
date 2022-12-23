@@ -8,6 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+
+	"time"
 )
 
 func TarDir2(src string, dst string) error {
@@ -127,6 +130,87 @@ func UntarDir2(src string, dst string) error {
 	bar64.Finish()
 
 	fhsrc.Close()
+
+	return nil
+}
+
+func CopyFile2(src string, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dstFile.Close()
+	srcFile.Close()
+	return nil
+}
+
+func CopyDir2(src string, dst string) error {
+	if BatchWait < 1 || BatchWait > 3600 {
+		BatchWait = 3
+	}
+	wgc := sync.WaitGroup{}
+	bar.WithDisabled(false)
+	bar.WithMax(0)
+	var copyPool int
+
+	var walkFunc = func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		srcPath, _ := filepath.Abs(path)
+		dstPath := strings.Replace(srcPath, filepath.Dir(src), dst, 1)
+
+		MakeDirs(filepath.Dir(dstPath))
+
+		if IsOverwrite == false {
+			_, err := FileInfo(dstPath)
+			if err == nil {
+				return nil
+			}
+		}
+
+		if copyPool >= BatchSize {
+			time.Sleep(time.Second * time.Duration(BatchWait))
+		}
+
+		if isDebug {
+			log.Println("copyPool:", copyPool)
+		}
+
+		wgc.Add(1)
+
+		go func() {
+			bar.Add(1)
+			CopyFile2(srcPath, dstPath)
+			if copyPool > 0 {
+				copyPool -= 1
+			}
+			wgc.Done()
+		}()
+
+		copyPool += 1
+
+		return err
+	}
+
+	filepath.Walk(src, walkFunc)
+
+	wgc.Wait()
 
 	return nil
 }

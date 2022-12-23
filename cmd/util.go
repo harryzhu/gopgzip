@@ -263,6 +263,10 @@ func IsExcluded(s string) bool {
 			return true
 		}
 
+		if strings.HasPrefix(s, line) {
+			return true
+		}
+
 	}
 
 	return false

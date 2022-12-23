@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	IsAsyncCopy bool
+	BatchSize   int
+	BatchWait   int64
+)
+
 // copyCmd represents the copy command
 var copyCmd = &cobra.Command{
 	Use:   "copy",
@@ -33,7 +39,12 @@ var copyCmd = &cobra.Command{
 		if finputInfo.IsDir() == false {
 			CopyFile(Input, Output)
 		} else {
-			CopyDir(Input, Output)
+			if IsAsyncCopy == true {
+				CopyDir2(Input, Output)
+			} else {
+				CopyDir(Input, Output)
+			}
+
 		}
 
 	},
@@ -42,6 +53,9 @@ var copyCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(copyCmd)
 	copyCmd.Flags().BoolVar(&IsOverwrite, "overwrite", false, "overwrite the existing file")
+	copyCmd.Flags().BoolVar(&IsAsyncCopy, "async-copy", true, "copy file parallely")
+	copyCmd.Flags().IntVar(&BatchSize, "batch", 200, "use with --copy-async=true")
+	copyCmd.Flags().Int64Var(&BatchWait, "batch-wait", 5, "1 ~ 3600 seconds,use with --copy-async=true")
 
 	rootCmd.MarkFlagRequired("input")
 	rootCmd.MarkFlagRequired("output")

@@ -267,6 +267,10 @@ func IsExcluded(s string) bool {
 			return true
 		}
 
+		if strings.HasPrefix(filepath.Base(s), line) {
+			return true
+		}
+
 	}
 
 	return false

@@ -15,6 +15,7 @@ import (
 
 	"time"
 
+	. "github.com/klauspost/cpuid/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,8 @@ var (
 	tStop       time.Time
 	IsOverwrite bool
 	isDebug     bool
+	isSIMD      bool
+	isAvx512    bool
 )
 
 var (
@@ -41,6 +44,17 @@ var rootCmd = &cobra.Command{
 	Long:  `-`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		isSIMD = false
+		isAvx512 = false
+
+		if CPU.Supports(SSE, SSE2) {
+			isSIMD = true
+		}
+		//if CPU.Supports(SHA, SSSE3, SSE4) {
+		if CPU.Supports(AVX512F, AVX512DQ, AVX512BW, AVX512VL) {
+			isAvx512 = true
+		}
+
 		NumCPU = runtime.NumCPU()
 		runtime.LockOSThread()
 		runtime.GOMAXPROCS(NumCPU)

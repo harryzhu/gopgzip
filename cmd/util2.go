@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"archive/tar"
+	"encoding/hex"
 	"io"
 	"io/fs"
 	"log"
@@ -11,6 +12,9 @@ import (
 	"sync"
 
 	"time"
+
+	md5simd "github.com/minio/md5-simd"
+	sha256simd "github.com/minio/sha256-simd"
 )
 
 func TarDir2(src string, dst string) error {
@@ -213,4 +217,53 @@ func CopyDir2(src string, dst string) error {
 	wgc.Wait()
 
 	return nil
+}
+
+func MD5FileSIMD(src string) string {
+	// Create server
+	server := md5simd.NewServer()
+	defer server.Close()
+
+	// Create hashing object (conforming to hash.Hash)
+	hash := server.NewHash()
+	defer hash.Close()
+
+	// Write one (or more) blocks
+	fsrc, _, fhsrc := NewBufReader(src)
+	var buf []byte = make([]byte, 8192)
+	for {
+		n, err := fsrc.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatal(err)
+		}
+		hash.Write(buf[:n])
+	}
+
+	fhsrc.Close()
+
+	// Return digest
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func SHA256FileSIMD(src string) string {
+	reader, _, fhsrc := NewBufReader(src)
+	hash := sha256simd.New()
+
+	var buf []byte = make([]byte, 8192)
+	for {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatal(err)
+		}
+		hash.Write(buf[:n])
+	}
+
+	fhsrc.Close()
+	return hex.EncodeToString(hash.Sum([]byte{}))
 }

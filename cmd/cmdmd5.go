@@ -18,7 +18,7 @@ var md5Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		m := ""
 		if isSIMD {
-			log.Println("Support SIMD 2")
+			log.Println("using simd")
 			m = MD5FileSIMD(Input)
 		} else {
 			m = MD5File(Input)

@@ -19,8 +19,8 @@ var sha256Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		p := ""
 
-		if isAvx512 {
-			log.Println("Support AVX512")
+		if isSIMD {
+			log.Println("using simd")
 			p = SHA256FileSIMD(Input)
 		} else {
 			p = SHA256File(Input)

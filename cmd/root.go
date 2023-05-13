@@ -15,7 +15,6 @@ import (
 
 	"time"
 
-	. "github.com/klauspost/cpuid/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +27,6 @@ var (
 	IsOverwrite bool
 	isDebug     bool
 	isSIMD      bool
-	isAvx512    bool
 )
 
 var (
@@ -44,17 +42,6 @@ var rootCmd = &cobra.Command{
 	Long:  `-`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		isSIMD = false
-		isAvx512 = false
-
-		if CPU.Supports(SSE, SSE2) {
-			isSIMD = true
-		}
-		//if CPU.Supports(SHA, SSSE3, SSE4) {
-		if CPU.Supports(AVX512F, AVX512DQ, AVX512BW, AVX512VL) {
-			isAvx512 = true
-		}
-
 		NumCPU = runtime.NumCPU()
 		runtime.LockOSThread()
 		runtime.GOMAXPROCS(NumCPU)
@@ -118,5 +105,6 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&IsOverwrite, "overwrite", false, "if overwrite the existing file")
 	rootCmd.PersistentFlags().IntVar(&BufferMB, "buffer-mb", 64, "1~2048;SSD: greater is better, HDD: lower is better")
 	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "will show more info if true")
+	rootCmd.PersistentFlags().BoolVar(&isSIMD, "simd", false, "use simd instructions or not")
 
 }

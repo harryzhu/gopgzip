@@ -220,15 +220,12 @@ func CopyDir2(src string, dst string) error {
 }
 
 func MD5FileSIMD(src string) string {
-	// Create server
 	server := md5simd.NewServer()
 	defer server.Close()
 
-	// Create hashing object (conforming to hash.Hash)
 	hash := server.NewHash()
 	defer hash.Close()
 
-	// Write one (or more) blocks
 	fsrc, _, fhsrc := NewBufReader(src)
 	var buf []byte = make([]byte, 8192)
 	for {
@@ -244,7 +241,6 @@ func MD5FileSIMD(src string) string {
 
 	fhsrc.Close()
 
-	// Return digest
 	return hex.EncodeToString(hash.Sum(nil))
 }
 

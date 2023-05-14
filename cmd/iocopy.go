@@ -20,7 +20,6 @@ func CopyFileWithBar(r io.Reader, w io.Writer, barMax64 int64) (err error) {
 
 	if err != nil {
 		log.Fatal(err)
-		return err
 	}
 
 	return nil

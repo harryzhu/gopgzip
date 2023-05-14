@@ -5,6 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -54,18 +55,6 @@ var rootCmd = &cobra.Command{
 		bar = pbar.NewBar(0)
 		bar64 = pbar.NewBar64(0)
 
-		if isBar {
-			bar.WithDisabled(false)
-			bar64.WithDisabled64(false)
-			bar.WithCounterSkip(0)
-			bar64.WithCounterSkip(0)
-		} else {
-			bar.WithDisabled(true)
-			bar64.WithDisabled64(true)
-		}
-
-		tStart = time.Now()
-
 		Input = PathNormalize(Input)
 		Output = PathNormalize(Output)
 
@@ -77,12 +66,14 @@ var rootCmd = &cobra.Command{
 			MakeDirs(filepath.Dir(Output))
 		}
 
+		tStart = time.Now()
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		tStop = time.Now()
 		log.Printf("duration: %v sec", tStop.Sub(tStart))
 
 		if isDebug {
+			fmt.Println("*** Debug Info ***")
 			log.Println("-------------")
 			log.Println("input:", Input)
 

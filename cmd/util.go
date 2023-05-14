@@ -820,6 +820,7 @@ func HttpServer(ip string, port string, rootdir string) {
 	addr := strings.Join([]string{ip, port}, ":")
 	urlpath := strings.Join([]string{"http://", ip, ":", port, "/"}, "")
 	fmt.Println("open your browser, and visit: ", urlpath)
+
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		log.Fatal(err)

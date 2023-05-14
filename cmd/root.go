@@ -85,17 +85,10 @@ var rootCmd = &cobra.Command{
 		if isDebug {
 			log.Println("-------------")
 			log.Println("input:", Input)
-			fi, err := os.Stat(Input)
-			if err == nil && fi.IsDir() == false {
-				log.Println("input xxhash:", Xxh3SumFile(Input))
-			}
 
 			log.Println("-------------")
 			log.Println("output:", Output)
-			fo, err := os.Stat(Output)
-			if err == nil && fo.IsDir() == false {
-				log.Println("output xxhash:", Xxh3SumFile(Output))
-			}
+
 		}
 	},
 }
@@ -117,6 +110,6 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&IsOverwrite, "overwrite", false, "if overwrite the existing file")
 	rootCmd.PersistentFlags().IntVar(&BufferMB, "buffer-mb", 64, "1~2048;SSD: greater is better, HDD: lower is better")
 	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "will show more info if true")
-	rootCmd.PersistentFlags().BoolVar(&isSIMD, "simd", false, "use simd instructions or not")
-	rootCmd.PersistentFlags().BoolVar(&isBar, "bar", false, "show progressbar or not")
+	rootCmd.PersistentFlags().BoolVar(&isSIMD, "simd", false, "use simd instructions")
+	rootCmd.PersistentFlags().BoolVar(&isBar, "bar", false, "show progressbar")
 }

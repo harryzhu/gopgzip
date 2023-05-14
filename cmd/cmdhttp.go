@@ -11,23 +11,26 @@ import (
 var (
 	HttpIP   string
 	HttpPort string
-	HttpDir  string
 )
 
 // httpCmd represents the http command
 var httpCmd = &cobra.Command{
 	Use:   "http",
-	Short: "http --ip=your-machine-ip --port=8080 --dir=the-absolute-path-you-want-to-serve",
+	Short: "http --ip=your-machine-ip --port=8080 --input=the-absolute-path-you-want-to-serve",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		HttpServer(HttpIP, HttpPort, HttpDir)
+		if Input == "" {
+			Input = "./"
+		}
+
+		HttpServer(HttpIP, HttpPort, Input)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(httpCmd)
-	httpCmd.Flags().StringVar(&HttpIP, "ip", "0.0.0.0", "the machine's ip")
+	httpCmd.Flags().StringVar(&HttpIP, "ip", "0.0.0.0", "the machine's ip address")
 	httpCmd.Flags().StringVar(&HttpPort, "port", "8080", "the port, default port is 8080")
-	httpCmd.Flags().StringVar(&HttpDir, "dir", "./", "the root dir, default is ./")
 
+	rootCmd.MarkFlagRequired("input")
 }

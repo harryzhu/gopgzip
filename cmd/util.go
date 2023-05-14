@@ -812,3 +812,16 @@ func DownloadByList(src string, dstDir string) error {
 
 	return nil
 }
+
+func HttpServer(ip string, port string, rootdir string) {
+	fs := http.FileServer(http.Dir(rootdir))
+	http.Handle("/", http.StripPrefix("/", fs))
+
+	addr := strings.Join([]string{ip, port}, ":")
+	urlpath := strings.Join([]string{"http://", ip, ":", port, "/"}, "")
+	fmt.Println("open your browser, and visit: ", urlpath)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+}

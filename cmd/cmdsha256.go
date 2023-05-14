@@ -20,7 +20,7 @@ var sha256Cmd = &cobra.Command{
 		p := ""
 
 		if isSIMD {
-			log.Println("using simd")
+			log.Println("using --simd")
 			p = SHA256FileSIMD(Input)
 		} else {
 			p = SHA256File(Input)

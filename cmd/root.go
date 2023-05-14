@@ -35,6 +35,10 @@ var (
 	bar64  *pbar.Bar64
 )
 
+const (
+	MB int64 = int64(1024 * 1024)
+)
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "gopgzip",

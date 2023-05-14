@@ -224,6 +224,7 @@ func MD5FileSIMD(src string) string {
 	defer server.Close()
 
 	hash := server.NewHash()
+	hash.Reset()
 	defer hash.Close()
 
 	fsrc, _, fhsrc := NewBufReader(src)

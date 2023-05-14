@@ -50,13 +50,7 @@ func CompressWithGZip(src, dst string) {
 
 	log.Printf("threads: %v, buffer-size: %v MB", selectThreads, BufferMB)
 
-	bar64.WithMax64(fsrcInfo.Size())
-	_, err = io.Copy(io.MultiWriter(w, bar64), fsrc)
-	bar64.Finish()
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	CopyFileWithBar(fsrc, w, fsrcInfo.Size())
 
 	w.Close()
 	fdst.Flush()
@@ -92,14 +86,8 @@ func DecompressWithGZip(src string, dst string) error {
 		log.Fatal(err)
 	}
 
-	bar64.WithMax64(fsrcInfo.Size())
-	_, err = reader.WriteTo(io.MultiWriter(fdst, bar64))
-	fdst.Flush()
-	bar64.Finish()
+	CopyFileWithBar(reader, fdst, fsrcInfo.Size())
 
-	if err != nil {
-		log.Fatal(err)
-	}
 	fhdst.Close()
 	fhsrc.Close()
 
@@ -474,27 +462,17 @@ func CompressWithZstd(src, dst string) error {
 	cLevel := GetZstdLevel()
 
 	enc, err := zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel))
-	if Threads > 0 {
-		numThreads := GetNumThreads()
-		log.Println("threads:", numThreads)
-		enc, err = zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel), zstd.WithEncoderConcurrency(numThreads))
-	}
+
+	numThreads := GetNumThreads()
+	log.Println("threads:", numThreads)
+	enc, err = zstd.NewWriter(fdst, zstd.WithEncoderLevel(cLevel), zstd.WithEncoderConcurrency(numThreads))
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	if isBar {
-		bar64.WithMax64(fsrcInfo.Size())
-		_, err = io.Copy(io.MultiWriter(enc, bar64), fsrc)
-		bar64.Finish()
-	} else {
-		_, err = io.Copy(enc, fsrc)
-	}
 
-	if err != nil {
-		enc.Close()
-		log.Fatal(err)
-	}
+	CopyFileWithBar(fsrc, enc, fsrcInfo.Size())
+
 	enc.Close()
 
 	fhsrc.Close()
@@ -528,18 +506,9 @@ func DecompressWithZstd(src, dst string) error {
 	}
 	defer dec.Close()
 
-	bar64.WithMax64(0)
-	_, err = io.Copy(io.MultiWriter(fdst, bar64), dec)
-	bar64.Finish()
-
-	if err != nil && err != io.EOF {
-
-		log.Println("error: io.copy")
-		log.Fatal(err)
-	}
+	CopyFileWithBar(dec, fdst, 0)
 
 	fsrc.Close()
-
 	fdst.Close()
 
 	err = os.Rename(dstTemp, dst)
@@ -614,18 +583,11 @@ func CopyFile(src string, dst string) error {
 	fsrc, fsrcInfo, fhsrc := NewBufReader(src)
 	fdst, fhdst := NewBufWriter(dst)
 
-	bar64.WithMax64(fsrcInfo.Size())
-	_, err = io.Copy(io.MultiWriter(fdst, bar64), fsrc)
+	CopyFileWithBar(fsrc, fdst, fsrcInfo.Size())
 	fdst.Flush()
-	bar64.Finish()
 
 	fhsrc.Close()
 	fhdst.Close()
-
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 
 	return nil
 }
@@ -763,16 +725,9 @@ func DownloadFile(src string, dst string) error {
 	fdst, fhdst := NewBufWriter(dstTemp)
 	defer fhdst.Close()
 
-	bar64.WithMax64(resp.ContentLength)
-	_, err = io.Copy(io.MultiWriter(fdst, bar64), resp.Body)
+	CopyFileWithBar(resp.Body, fdst, resp.ContentLength)
+
 	fdst.Flush()
-	bar64.Finish()
-
-	if err != nil {
-		log.Println("Error(io.Copy):", err)
-		return err
-	}
-
 	fhdst.Close()
 
 	err = os.Rename(dstTemp, dst)

@@ -27,6 +27,7 @@ var (
 	IsOverwrite bool
 	isDebug     bool
 	isSIMD      bool
+	isBar       bool
 )
 
 var (
@@ -53,8 +54,15 @@ var rootCmd = &cobra.Command{
 		bar = pbar.NewBar(0)
 		bar64 = pbar.NewBar64(0)
 
-		bar.WithDisabled(true)
-		bar64.WithDisabled64(true)
+		if isBar {
+			bar.WithDisabled(false)
+			bar64.WithDisabled64(false)
+			bar.WithCounterSkip(0)
+			bar64.WithCounterSkip(0)
+		} else {
+			bar.WithDisabled(true)
+			bar64.WithDisabled64(true)
+		}
 
 		tStart = time.Now()
 
@@ -110,5 +118,5 @@ func init() {
 	rootCmd.PersistentFlags().IntVar(&BufferMB, "buffer-mb", 64, "1~2048;SSD: greater is better, HDD: lower is better")
 	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "will show more info if true")
 	rootCmd.PersistentFlags().BoolVar(&isSIMD, "simd", false, "use simd instructions or not")
-
+	rootCmd.PersistentFlags().BoolVar(&isBar, "bar", false, "show progressbar or not")
 }

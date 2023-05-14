@@ -483,10 +483,13 @@ func CompressWithZstd(src, dst string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	bar64.WithMax64(fsrcInfo.Size())
-	_, err = io.Copy(io.MultiWriter(enc, bar64), fsrc)
-	bar64.Finish()
+	if isBar {
+		bar64.WithMax64(fsrcInfo.Size())
+		_, err = io.Copy(io.MultiWriter(enc, bar64), fsrc)
+		bar64.Finish()
+	} else {
+		_, err = io.Copy(enc, fsrc)
+	}
 
 	if err != nil {
 		enc.Close()
